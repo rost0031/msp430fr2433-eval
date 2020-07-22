@@ -85,6 +85,7 @@ int main(void)
     return 0;
 }
 
+/******************************************************************************/
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=USCI_A0_VECTOR
 __interrupt void USCI_A0_ISR(void)
@@ -94,18 +95,11 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
 #error Compiler not supported!
 #endif
 {
-//    switch (__even_in_range(UCA0IV,USCI_UART_UCTXCPTIFG)) {
-    switch (UCA0IV) {
+    switch (__even_in_range(UCA0IV,USCI_UART_UCTXCPTIFG)) {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
               UCA0IFG &=~ UCRXIFG;            // Clear interrupt
               RXData = UCA0RXBUF;             // Clear buffer
-//              if(RXData != TXData) {          // Check value
-//                  P1OUT |= BIT0;              // If incorrect turn on P1.0
-//                  while(1);                   // trap CPU
-//              }
-//              TXData++;                             // increment data byte
-//              __bic_SR_register_on_exit(LPM0_bits); // Exit LPM0 on reti
               break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;

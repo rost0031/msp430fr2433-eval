@@ -29,10 +29,10 @@
 <intAttribute key="org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR" value="0"/>
 <stringAttribute key="org.eclipse.cdt.launch.COREFILE_PATH" value=""/>
 <stringAttribute key="org.eclipse.cdt.launch.DEBUGGER_START_MODE" value="remote"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="/home/rost0031/workspace/msp430fr2433-eval/examples/msp430fr2433/MSP430FR2433.out"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROGRAM_NAME" value="/home/rost0031/workspace/msp430fr2433-eval/examples/msp430fr2433-uart-drv/dbg/uart-msp430fr2433.elf"/>
 <stringAttribute key="org.eclipse.cdt.launch.PROJECT_ATTR" value="msp430fr2433-eval"/>
-<booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="true"/>
-<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value="cdt.managedbuild.toolchain.gnu.cross.base.478435832"/>
+<booleanAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_AUTO_ATTR" value="false"/>
+<stringAttribute key="org.eclipse.cdt.launch.PROJECT_BUILD_CONFIG_ID_ATTR" value=""/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
 <listEntry value="/msp430fr2433-eval"/>
 </listAttribute>
