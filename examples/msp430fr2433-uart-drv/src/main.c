@@ -12,12 +12,18 @@
 #include <string.h>
 #include <stdio.h>
 #include "uart.h"
+#include "cs.h"
 
 /* Compile-time called macros ------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+#define CS_MCLK_DESIRED_FREQUENCY_IN_KHZ    (8000)
+#define CS_MCLK_FLLREF_RATIO                (243)
 /* Private macros ------------------------------------------------------------*/
 /* Private variables and Local objects ---------------------------------------*/
+static volatile uint32_t clockValueSMCLK = 0;
+static volatile uint32_t clockValueMCLK = 0;
+static volatile uint32_t clockValueACLK = 0;
 
 static const uint8_t buffer[] = "Hello World\n";
 
@@ -47,6 +53,83 @@ int main(void)
 
     P1DIR |= (BIT0 | BIT1);         // Set P1.0 and P1.1 to output direction
 
+#if 1
+    //Set DCO FLL reference = REFO
+    CS_initClockSignal(
+            CS_FLLREF,
+            CS_REFOCLK_SELECT,
+            CS_CLOCK_DIVIDER_1
+    );
+
+    //Set ACLK = REFO
+    CS_initClockSignal(
+            CS_ACLK,
+            CS_REFOCLK_SELECT,
+            CS_CLOCK_DIVIDER_1
+    );
+
+    CS_initClockSignal(
+            CS_MCLK,
+            CS_DCOCLKDIV_SELECT,
+            CS_CLOCK_DIVIDER_1
+    );
+
+    CS_initClockSignal(
+            CS_SMCLK,
+            CS_DCOCLKDIV_SELECT,
+            CS_CLOCK_DIVIDER_8
+    );
+
+    //Create struct variable to store proper software trim values
+    CS_initFLLParam param = {0};
+
+    //Set Ratio/Desired MCLK Frequency, initialize DCO, save trim values
+    CS_initFLLCalculateTrim(
+            CS_MCLK_DESIRED_FREQUENCY_IN_KHZ,
+            CS_MCLK_FLLREF_RATIO,
+            &param
+    );
+
+    //Clear all OSC fault flag
+    CS_clearAllOscFlagsWithTimeout(1000);
+
+    //For demonstration purpose, change DCO clock freq to 16MHz
+    CS_initFLLSettle(
+            16000,
+            487
+    );
+
+    //Clear all OSC fault flag
+    CS_clearAllOscFlagsWithTimeout(1000);
+
+    //Reload DCO trim values that were calculated earlier
+    CS_initFLLLoadTrim(
+            CS_MCLK_DESIRED_FREQUENCY_IN_KHZ,
+            CS_MCLK_FLLREF_RATIO,
+            &param
+    );
+
+    //Clear all OSC fault flag
+    CS_clearAllOscFlagsWithTimeout(1000);
+
+
+//    CS_initClockSignal(
+//            CS_SMCLK,
+//            CS_REFOCLK_SELECT,
+//            CS_CLOCK_DIVIDER_1
+//    );
+
+    //Clear all OSC fault flag
+    CS_clearAllOscFlagsWithTimeout(1000);
+
+    //Verify if the Clock settings are as expected
+    clockValueSMCLK = CS_getSMCLK();
+    clockValueMCLK = CS_getMCLK();
+    clockValueACLK = CS_getACLK();
+#endif
+
+
+
     /* Initialize the UART */
     const UartInit_t uartInit = {.parity = ParityNone, .stopBits = StopBits1};
     UART_init(&uartInit);
@@ -64,13 +147,14 @@ int main(void)
 
 
         for (volatile uint16_t i = 0; i < 10000; i++){}
-
+//        __delay_cycles(50000);
         if (!isTxBusy) {
             isTxBusy = true;
             if (ERR_NONE != UART_send(sizeof(buffer), buffer)) {
                 isTxBusy = false;
             }
         }
+
 
     }
 

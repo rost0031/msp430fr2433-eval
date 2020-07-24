@@ -131,7 +131,8 @@ A_SRCS                 +=
 
 # C source files
 C_SRCS                 += main.c \
-                          uart.c
+                          uart.c \
+                          cs.c
                           
 A_OBJS                 = $(patsubst %.s,%.o,$(A_SRCS))
 A_OBJS_EXT             = $(addprefix $(BIN_DIR)/, $(A_OBJS))

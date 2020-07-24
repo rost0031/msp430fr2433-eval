@@ -193,43 +193,34 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
         case USCI_UART_UCSTTIFG:                {
             break;
         }
-        case USCI_UART_UCTXIFG: {                    /* Ready to transmit more */
-//            volatile uint16_t g = 0;
-//            while(UCA0STATW & UCBUSY) {
-//                g++;
-//            }
-
-//            UCA0TXBUF = uart.pDynData->bufferTx.pData[(uart.pDynData->bufferTx.len)++];
-
+        case USCI_UART_UCTXIFG: {
+            /* This interrupt is used only for completing the transmission and
+             * not to actually send the data due to the way TI goofed on their
+             * implementation of the UART interrupts. This interrupt says that
+             * the buffer has been shifted to the output register of the UART
+             * module but you can't load data into it yet since it will start
+             * overwriting the shift register. It is, however, fine for telling
+             * the system that we have output the last byte from our transmit
+             * buffer. */
             if (uart.pDynData->bufferTx.len >= uart.pDynData->bufferTx.maxLen) {
                 if (uart.pDynData->callbacks[UartEvtDataSent]) {
                     uart.pDynData->callbacks[UartEvtDataSent](ERR_NONE, &(uart.pDynData->bufferTx));
                 }
-//                UCA0IE &= ~UCTXIE;                   /* Disable the interrupt */
                 UCA0IE &= ~(UCTXIE | UCTXCPTIE);       /* Disable the interrupt */
                 uart.pDynData->isTxBusy = false;   /* We are finished with TX */
             }
-//            UCA0IFG &=~ (UCTXIFG | UCTXCPTIFG);           /* Clear interrupts */
             break;
         }
-        case USCI_UART_UCTXCPTIFG:             {
-//            volatile uint16_t g = 0;
-//
-//            while(UCA0STATW & UCBUSY) {
-//                g++;
-//            }
-            UCA0TXBUF = uart.pDynData->bufferTx.pData[(uart.pDynData->bufferTx.len)++];
+        case USCI_UART_UCTXCPTIFG: {
+            /* This interrupt is tells us that the UART shift register has been
+             * sent out so it's safe to load the next value. */
 
-//            if (uart.pDynData->bufferTx.len == uart.pDynData->bufferTx.maxLen) {
-//                if (uart.pDynData->callbacks[UartEvtDataSent]) {
-//                    uart.pDynData->callbacks[UartEvtDataSent](ERR_NONE, &(uart.pDynData->bufferTx));
-//                }
-//                UCA0IE &= ~UCTXIE;                   /* Disable the interrupt */
-//                uart.pDynData->isTxBusy = false;   /* We are finished with TX */
+            /* This guard doesn't seem to be necessary. I'm leaving it here
+             * commented out just in case it's ever needed */
+//            if (uart.pDynData->bufferTx.len < uart.pDynData->bufferTx.maxLen) {
+                UCA0TXBUF = uart.pDynData->bufferTx.pData[(uart.pDynData->bufferTx.len)++];
 //            }
-//            UCA0IFG &=~ (UCTXIFG | UCTXCPTIFG);           /* Clear interrupts */
-//            volatile uint8_t h = 0;
-//            h++;
+
             break;
         }
         case USCI_NONE:                         /* Intentionally fall through */
