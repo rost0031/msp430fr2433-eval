@@ -175,8 +175,11 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
         case USCI_UART_UCRXIFG:                       /* Received a character */
             /* Save the received byte into the buffer and check if we reached
              * max size. If we have, call the interrupt if it exists */
-            uart.pDynData->bufferRx.pData[(uart.pDynData->bufferRx.len)++] = UCA0RXBUF;
-            if (uart.pDynData->bufferRx.len >= uart.pDynData->bufferRx.maxLen) {
+            if (NULL != uart.pDynData->bufferRx.pData) {
+                uart.pDynData->bufferRx.pData[(uart.pDynData->bufferRx.len)++] = UCA0RXBUF;
+            }
+
+            if (uart.pDynData->bufferRx.len == uart.pDynData->bufferRx.maxLen) {
                 if (uart.pDynData->callbacks[UartEvtDataRcvd]) {
                     uart.pDynData->callbacks[UartEvtDataRcvd](ERR_NONE, &(uart.pDynData->bufferRx));
                 }
@@ -187,7 +190,7 @@ void __attribute__ ((interrupt(USCI_A0_VECTOR))) USCI_A0_ISR (void)
             /* Clear the interrupt only after we have returned from the
              * callback to avoid accidentally getting nested interrupts since
              * MSP430 really sucks at those */
-            UCA0IFG &=~ UCRXIFG;                           /* Clear interrupt */
+//            UCA0IFG &=~ UCRXIFG;                           /* Clear interrupt */
 
             break;
         case USCI_UART_UCSTTIFG:                {

@@ -24,9 +24,24 @@ extern "C" {
 /**
  * @brief   TIMER callback function pointer type
  */
-typedef void (*TimerCallback_t) (
+typedef void (*TimCallback_t) (
         Error_t                                 /**< [in] status of operation */
 );
+
+/**
+ * @brief   Timer events
+ *
+ * This set of enums is a list of possible events for this driver.
+ * Its primary purpose to allow user to assign callbacks for these events
+ */
+typedef enum {
+    TimEvtStart = 0,                                 /**< For bounds checking */
+
+    TimEvtCompValReached = TimEvtStart,/**< Comparison value reached by timer */
+    TimEvtRollover,                                    /**< Timer rolled over */
+
+    TimEvtEnd                                        /**< For bounds checking */
+} TimEvt_t;
 
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/

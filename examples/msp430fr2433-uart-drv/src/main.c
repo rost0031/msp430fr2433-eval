@@ -28,6 +28,17 @@ static volatile uint32_t clockValueACLK = 0;
 static const uint8_t buffer[] = "Hello World\n";
 
 static volatile bool isTxBusy = false;
+static volatile bool isRxBusy = false;
+
+
+static uint8_t txBuffer[32] = {0};
+static uint8_t rxBuffer[32] = {0};
+static uint16_t rxBufferLen = 0;
+
+static uint16_t milliseconds = 0;
+static uint16_t seconds = 0;
+static uint16_t minutes = 0;
+static uint16_t hours = 0;
 
 /* Private function prototypes -----------------------------------------------*/
 static void __attribute__((naked, section(".crt_0042"), used))
@@ -37,6 +48,7 @@ disable_watchdog (void)
 }
 
 static void UART_callbackTxDone(Error_t status, Buffer_t* pBuffer);
+static void UART_callbackRxDone(Error_t status, Buffer_t* pBuffer);
 
 /* Public and Exported functions ---------------------------------------------*/
 
@@ -53,7 +65,7 @@ int main(void)
 
     P1DIR |= (BIT0 | BIT1);         // Set P1.0 and P1.1 to output direction
 
-#if 1
+
     //Set DCO FLL reference = REFO
     CS_initClockSignal(
             CS_FLLREF,
@@ -112,23 +124,26 @@ int main(void)
     //Clear all OSC fault flag
     CS_clearAllOscFlagsWithTimeout(1000);
 
-
-//    CS_initClockSignal(
-//            CS_SMCLK,
-//            CS_REFOCLK_SELECT,
-//            CS_CLOCK_DIVIDER_1
-//    );
-
-    //Clear all OSC fault flag
-    CS_clearAllOscFlagsWithTimeout(1000);
-
     //Verify if the Clock settings are as expected
     clockValueSMCLK = CS_getSMCLK();
     clockValueMCLK = CS_getMCLK();
     clockValueACLK = CS_getACLK();
-#endif
 
+    uint16_t value = clockValueSMCLK * 0.001;
 
+    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
+    TA0CCR0 = value;
+    TA0CTL = TASSEL__SMCLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
+
+    // This works but there's some clock drift over many seconds but better than with ACLK
+//    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
+//    TA0CCR0 = 1000;
+//    TA0CTL = TASSEL__SMCLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
+
+    // This works but there's some clock drift over many seconds
+    //    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
+    //    TA0CCR0 = 32;
+    //    TA0CTL = TASSEL__ACLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
 
     /* Initialize the UART */
     const UartInit_t uartInit = {.parity = ParityNone, .stopBits = StopBits1};
@@ -136,6 +151,7 @@ int main(void)
 
     /* Register callbacks */
     UART_regCallback(UartEvtDataSent, UART_callbackTxDone);
+    UART_regCallback(UartEvtDataRcvd, UART_callbackRxDone);
 
     /* Start the driver */
     UART_start();
@@ -145,24 +161,89 @@ int main(void)
     for(;;) {
         P1OUT ^= (BIT0 | BIT1);		// Toggle P1.0 and P1.1 using exclusive-OR
 
-
-        for (volatile uint16_t i = 0; i < 10000; i++){}
+//        for (volatile uint16_t i = 0; i < 10000; i++){}
 //        __delay_cycles(50000);
         if (!isTxBusy) {
             isTxBusy = true;
-            if (ERR_NONE != UART_send(sizeof(buffer), buffer)) {
+//            if (ERR_NONE != UART_send(sizeof(buffer), buffer)) {
+//                isTxBusy = false;
+//            }
+
+            uint8_t bytes = snprintf(txBuffer, sizeof(txBuffer), "%02d:%02d:%02d:%03d-HelloWorld\n", hours, minutes, seconds, milliseconds);
+            if (ERR_NONE != UART_send(bytes, txBuffer)) {
                 isTxBusy = false;
             }
+
         }
 
 
+        if (!isRxBusy) {
+            isRxBusy = true;
+            rxBufferLen = 0;
+            if (ERR_NONE != UART_recv(sizeof(rxBuffer), rxBuffer)) {
+                isRxBusy = false;
+            }
+        }
     }
 
     return 0;
 }
 
 /* Private functions ---------------------------------------------------------*/
+
+/******************************************************************************/
 static void UART_callbackTxDone(Error_t status, Buffer_t* pBuffer)
 {
     isTxBusy = false;
+}
+
+/******************************************************************************/
+static void UART_callbackRxDone(Error_t status, Buffer_t* pBuffer)
+{
+    isRxBusy = false;
+    rxBufferLen = pBuffer->len;
+}
+
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+__interrupt void TIMER0_A0_ISR(void); /* prototype */
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void TIMER0_A0_ISR(void)
+#elif defined(__GNUC__)
+__attribute__ ((interrupt(TIMER0_A0_VECTOR)))
+void TIMER0_A0_ISR(void)
+#else
+    #error MSP430 compiler not supported!
+#endif
+{
+    switch(__even_in_range(TA0IV,TA0IV_TAIFG))
+    {
+        case TA0IV_NONE:
+            break;                               // No interrupt
+        case TA0IV_TACCR1:
+            break;                               // CCR1 not used
+        case TA0IV_TACCR2:
+            break;                               // CCR2 not used
+        case TA0IV_TAIFG:
+            P1OUT ^= BIT0;                       // overflow
+            break;
+        default:
+            break;
+    }
+
+    milliseconds++;
+    if (milliseconds == 1000) {
+        milliseconds = 0;
+        seconds++;
+    }
+
+    if (seconds == 60) {
+        seconds = 0;
+        minutes++;
+    }
+
+    if (minutes == 60) {
+        minutes = 0;
+        hours++;
+    }
+
 }
