@@ -23,7 +23,7 @@ NOW                        := $(shell date +%Y%m%d%H%M%S | tr ' :' '__')
 
 # Output file basename (should be the same as the directory name)
 TARGET                     := msp430fr2433
-PROJECT_BASE               := uart
+PROJECT_BASE               := uart-drv
 PROJECT_NAME               := $(PROJECT_BASE)-$(TARGET)
 TARGET_HEX                  = $(BIN_DIR)/$(PROJECT_NAME).hex
 TARGET_ELF                  = $(BIN_DIR)/$(PROJECT_NAME).elf
@@ -67,29 +67,36 @@ INCLUDES               += \
 #-----------------------------------------------------------------------------
 
 MSP430_CPU           := -mmcu=MSP430FR2433
+#MSP430_CPU := -mcpu=msp430
 
 # Common options
 WARNINGS             += -Wall 
 
+# Flags common to all compile and link flags
+# Note: Be careful with -flto (link time optimization). Could cause issues
 MFLAGS                = \
 						$(MSP430_CPU) \
+						-mtiny-printf \
 						-std=gnu17 \
 						-ffunction-sections \
                         -fdata-sections \
 						-ffreestanding \
                         -fno-common \
 						-fno-builtin \
+						-flto \
+						-fno-cse-follow-jumps \
 						$(WARNINGS)
-						
-						
-												
+											
 ASFLAGS               = -c $(MFLAGS)
 
-CFLAGS                = -c $(MFLAGS)  \
+CFLAGS                = -c $(MFLAGS) \
 						-W $(INCLUDES) $(DEFINES)  
 
-LINKFLAGS            += $(MFLAGS) -Wl,-Map,$(TARGET_MAP) \
-                        -Wl,--gc-sections 
+LINKFLAGS            += $(MFLAGS) \
+                         -Wl,-Map,$(TARGET_MAP) \
+                         -Wl,--gc-sections \
+                         -Wl,--discard-all
+                         
 
 # Options dependent on build type
 ifeq (rel, $(CONF))       # Release configuration ............................
@@ -97,7 +104,7 @@ ifeq (rel, $(CONF))       # Release configuration ............................
     DEFINES          += -DNDEBUG
     ASFLAGS          +=     
     CFLAGS           += -Os
-    LINKFLAGS        += -Wl,--strip-all -Wl,--discard-all -Wl,--gc-sections
+    LINKFLAGS        += -Wl,--strip-all 
 else ifeq (spy, $(CONF))  # Spy configuration ................................
     BIN_DIR          := spy
     DEFINES          += -DQ_SPY
@@ -110,11 +117,11 @@ else                     # default Debug configuration .......................
     DEFINES          += 
     ASFLAGS          += -g3   
     CFLAGS           += -Os -g3 -ggdb 
-    LINKFLAGS        += -g
+    LINKFLAGS        += -g 
 endif
 
 # Linker script and path						
-#LD_SCRIPT            := msp430fr2433.ld -static
+LD_SCRIPT            := msp430fr2433.ld -static
 LD_PATHS             := $(MSP430_DIR)
 #-----------------------------------------------------------------------------
 # DEFINES
@@ -132,7 +139,8 @@ A_SRCS                 +=
 # C source files
 C_SRCS                 += main.c \
                           uart.c \
-                          cs.c
+                          cs.c \
+                          timer.c
                           
 A_OBJS                 = $(patsubst %.s,%.o,$(A_SRCS))
 A_OBJS_EXT             = $(addprefix $(BIN_DIR)/, $(A_OBJS))
@@ -173,7 +181,7 @@ $(TARGET_HEX): $(TARGET_ELF) | $(BIN_DIR)
 
 $(TARGET_ELF): $(C_OBJS_EXT) $(A_OBJS_EXT) | $(BIN_DIR)
 	@echo --- Building $(PROJECT_NAME)
-	$(TRACE_FLAG)$(LINK) -L $(LD_PATHS) $(LINKFLAGS) $(LIB_PATHS) -o $@ $^ $(LIBS)
+	$(TRACE_FLAG)$(LINK) -L $(LD_PATHS) $(LINKFLAGS) $(LIB_PATHS)  -o $@ $^ $(LIBS)
 	$(SIZE) $(TARGET_ELF)
 	
 $(BIN_DIR)/%.o : %.c | $(BIN_DIR)

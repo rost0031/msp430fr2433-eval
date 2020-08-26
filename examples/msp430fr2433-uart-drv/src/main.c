@@ -65,7 +65,7 @@ int main(void)
 
     P1DIR |= (BIT0 | BIT1);         // Set P1.0 and P1.1 to output direction
 
-
+#if 1
     //Set DCO FLL reference = REFO
     CS_initClockSignal(
             CS_FLLREF,
@@ -133,7 +133,16 @@ int main(void)
 
     TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
     TA0CCR0 = value;
+    TA0CCTL1 = CCIE;                          // CCR0 interrupt enabled
+    TA0CCR1 = value * 2;
     TA0CTL = TASSEL__SMCLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
+
+#endif
+
+    // This works pretty well with minimal drift.
+//    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
+//    TA0CCR0 = value;
+//    TA0CTL = TASSEL__SMCLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
 
     // This works but there's some clock drift over many seconds but better than with ACLK
 //    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
@@ -159,18 +168,21 @@ int main(void)
     __enable_interrupt();       // enable all interrupts --> GIE = 1 (HIGH)
 
     for(;;) {
-        P1OUT ^= (BIT0 | BIT1);		// Toggle P1.0 and P1.1 using exclusive-OR
+//        P1OUT ^= (BIT0 | BIT1);		// Toggle P1.0 and P1.1 using exclusive-OR
 
-//        for (volatile uint16_t i = 0; i < 10000; i++){}
-//        __delay_cycles(50000);
+        for (volatile uint16_t i = 0; i < 10000; i++){
+            __delay_cycles(1000);
+        }
         if (!isTxBusy) {
             isTxBusy = true;
 //            if (ERR_NONE != UART_send(sizeof(buffer), buffer)) {
 //                isTxBusy = false;
 //            }
 
-            uint8_t bytes = snprintf(txBuffer, sizeof(txBuffer), "%02d:%02d:%02d:%03d-HelloWorld\n", hours, minutes, seconds, milliseconds);
-            if (ERR_NONE != UART_send(bytes, txBuffer)) {
+//            uint8_t bytes = snprintf(txBuffer, sizeof(txBuffer), "%02d:%02d:%02d:%03d-HelloWorld\n", hours, minutes, seconds, milliseconds);
+            uint8_t bytes = 7;
+//            if (ERR_NONE != UART_send(bytes, txBuffer)) {
+            if (ERR_NONE != UART_send(sizeof(buffer), buffer)) {
                 isTxBusy = false;
             }
 
@@ -204,6 +216,7 @@ static void UART_callbackRxDone(Error_t status, Buffer_t* pBuffer)
     rxBufferLen = pBuffer->len;
 }
 
+/******************************************************************************/
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 __interrupt void TIMER0_A0_ISR(void); /* prototype */
 #pragma vector=TIMER0_A0_VECTOR
@@ -215,20 +228,6 @@ void TIMER0_A0_ISR(void)
     #error MSP430 compiler not supported!
 #endif
 {
-    switch(__even_in_range(TA0IV,TA0IV_TAIFG))
-    {
-        case TA0IV_NONE:
-            break;                               // No interrupt
-        case TA0IV_TACCR1:
-            break;                               // CCR1 not used
-        case TA0IV_TACCR2:
-            break;                               // CCR2 not used
-        case TA0IV_TAIFG:
-            P1OUT ^= BIT0;                       // overflow
-            break;
-        default:
-            break;
-    }
 
     milliseconds++;
     if (milliseconds == 1000) {
@@ -246,4 +245,37 @@ void TIMER0_A0_ISR(void)
         hours++;
     }
 
+}
+
+/******************************************************************************/
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+__interrupt void TIMER0_A1_ISR(void); /* prototype */
+#pragma vector=TIMER0_A1_VECTOR
+__interrupt void TIMER0_A1_ISR(void)
+#elif defined(__GNUC__)
+__attribute__ ((interrupt(TIMER0_A1_VECTOR)))
+void TIMER0_A1_ISR(void)
+#else
+    #error MSP430 compiler not supported!
+#endif
+{
+    switch(__even_in_range(TA0IV,TA0IV_TAIFG))
+    {
+        case TA0IV_NONE:
+            break;                               // No interrupt
+        case TA0IV_TACCR1:
+            TA0CCTL1 &= ~CCIE;                          // CCR0 interrupt enabled
+            TA0CCR1 = 0;
+            P1OUT ^= BIT1;                       // overflow
+            break;                               // CCR1 not used
+        case TA0IV_TACCR2:
+            break;                               // CCR2 not used
+        case TA0IV_TAIFG:
+            TA0CCTL1 &= ~CCIE;                          // CCR0 interrupt enabled
+            TA0CCR1 = 0;
+            P1OUT ^= BIT0;                       // overflow
+            break;
+        default:
+            break;
+    }
 }
