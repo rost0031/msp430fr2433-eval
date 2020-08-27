@@ -1,0 +1,52 @@
+
+--- Module:   C:\qp_lab\qpcpp\src\qxk\qxk.cpp (C++)
+C:\qp_lab\qpcpp\src\qxk\qxk.cpp  244  note 9130: bitwise operator '<<' applied to signed underlying type 
+    [AUTOSAR Rule M5-0-21]
+C:\qp_lab\qpcpp\src\qxk\qxk.cpp  294  note 9130: bitwise operator '>>' applied to signed underlying type 
+    [AUTOSAR Rule M5-0-21]
+--- Module Wrap-up
+
+--- Module:   C:\qp_lab\qpcpp\src\qxk\qxk_mutex.cpp (C++)
+C:\qp_lab\qpcpp\src\qxk\qxk_mutex.cpp  212  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_mutex.cpp  418  note 1954: use of c-style cast to void ('bool' to 'void') 
+    [AUTOSAR Rule A5-2-2]
+--- Module Wrap-up
+
+--- Module:   C:\qp_lab\qpcpp\src\qxk\qxk_sema.cpp (C++)
+C:\qp_lab\qpcpp\src\qxk\qxk_sema.cpp  146  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_sema.cpp  258  note 1954: use of c-style cast to void ('bool' to 'void') 
+    [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_sema.cpp  265  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+--- Module Wrap-up
+
+--- Module:   C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp (C++)
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  102  note 1954: use of c-style cast to void ('const void *const' to 'void') 
+    [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  108  note 1954: use of c-style cast to void ('const struct QP::QEvt *const' to 
+    'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  138  note 1954: use of c-style cast to void ('const void *const' to 'void') 
+    [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  174  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  294  note 1954: use of c-style cast to void ('bool' to 'void') 
+    [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  298  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  353  note 1954: use of c-style cast to void ('const struct QP::QEvt *const' to 
+    'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  403  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  475  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  491  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+C:\qp_lab\qpcpp\src\qxk\qxk_xthr.cpp  650  note 1954: use of c-style cast to void ('std::uint_fast8_t' 
+    (aka 'unsigned int') to 'void') [AUTOSAR Rule A5-2-2]
+--- Module Wrap-up
+Count   Type    Number  Text
+
+16      note    1954    use of c-style cast to void (__type__ to __type__)
+2       note    9130    bitwise operator '__operator__' applied to signed underlying type

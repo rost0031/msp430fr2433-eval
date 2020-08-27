@@ -1,0 +1,537 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <fileVersion>4</fileVersion>
+    <fileChecksum>834332295</fileChecksum>
+    <configuration>
+        <name>Debug</name>
+        <outputs>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_defer.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_qeq.cpp</file>
+            <file>$PROJ_DIR$\..\table.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_dyn.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_ps.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\include\qstamp.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\nucleo-l053r8\system_stm32l0xx.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qep_msm.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\nucleo-l053r8\iar\startup_stm32l053xx.s</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_qact.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_qmact.cpp</file>
+            <file>$PROJ_DIR$\..\bsp.cpp</file>
+            <file>$PROJ_DIR$\..\main.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\ports\ucos-ii\qf_port.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qep_hsm.cpp</file>
+            <file>$PROJ_DIR$\..\philo.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_act.cpp</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_time.cpp</file>
+            <file>$PROJ_DIR$\dbg\qf_dyn.o</file>
+            <file>$PROJ_DIR$\dbg\os_mem.o</file>
+            <file>$PROJ_DIR$\dbg\os_mutex.o</file>
+            <file>$PROJ_DIR$\dbg\os_flag.o</file>
+            <file>$PROJ_DIR$\dbg\table.o</file>
+            <file>$PROJ_DIR$\dbg\os_time.o</file>
+            <file>$PROJ_DIR$\dbg\qep_hsm.o</file>
+            <file>$PROJ_DIR$\dbg\os_task.o</file>
+            <file>$PROJ_DIR$\dbg\philo.o</file>
+            <file>$PROJ_DIR$\dbg\qf_ps.o</file>
+            <file>$PROJ_DIR$\dbg\qf_time.o</file>
+            <file>$PROJ_DIR$\dbg\os_core.o</file>
+            <file>$PROJ_DIR$\dbg\os_q.o</file>
+            <file>$PROJ_DIR$\dbg\os_sem.o</file>
+            <file>$PROJ_DIR$\dbg\os_tmr.o</file>
+            <file>$PROJ_DIR$\dbg\qf_qeq.o</file>
+            <file>$PROJ_DIR$\dbg\qep_msm.o</file>
+            <file>$PROJ_DIR$\dbg\system_stm32l0xx.o</file>
+            <file>$PROJ_DIR$\dbg\bsp.o</file>
+            <file>$PROJ_DIR$\dbg\qf_act.o</file>
+            <file>$PROJ_DIR$\dbg\qf_qact.o</file>
+            <file>$PROJ_DIR$\dbg\qstamp.o</file>
+            <file>$PROJ_DIR$\dbg\qf_defer.o</file>
+            <file>$PROJ_DIR$\dbg\main.o</file>
+            <file>$PROJ_DIR$\dbg\qf_port.o</file>
+            <file>$PROJ_DIR$\dbg\qf_qmact.o</file>
+            <file>$PROJ_DIR$\dbg\os_mbox.o</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_mbox.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_flag.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_tmr.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_mutex.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_q.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_time.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Ports\ARM-Cortex-M\ARMv6-M\IAR\os_cpu_a.asm</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_task.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_core.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Ports\ARM-Cortex-M\ARMv6-M\os_cpu_c.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_sem.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Ports\ARM-Cortex-M\ARMv6-M\IAR\os_dbg.c</file>
+            <file>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_mem.c</file>
+            <file>$PROJ_DIR$\dbg\os_cpu_c.xcl</file>
+            <file>$PROJ_DIR$\dbg\dpp.bin</file>
+            <file>$PROJ_DIR$\dbg\os_dbg.xcl</file>
+            <file>$PROJ_DIR$\dbg\dpp.pbd</file>
+            <file>$PROJ_DIR$\dbg\dpp.out</file>
+            <file>$PROJ_DIR$\dbg\os_task.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_tmr.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_core.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_dyn.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_cpu_a.o</file>
+            <file>$PROJ_DIR$\dbg\os_cpu_c.o</file>
+            <file>$PROJ_DIR$\dbg\qf_qmact.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_qact.xcl</file>
+            <file>$PROJ_DIR$\dbg\philo.xcl</file>
+            <file>$PROJ_DIR$\dbg\table.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_defer.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_qeq.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_mem.xcl</file>
+            <file>$PROJ_DIR$\dbg\qep_hsm.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_act.xcl</file>
+            <file>$PROJ_DIR$\dbg\qstamp.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_q.xcl</file>
+            <file>$PROJ_DIR$\dbg\bsp.xcl</file>
+            <file>$PROJ_DIR$\dbg\qep_msm.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_port.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_flag.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_time.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_time.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_dbg.o</file>
+            <file>$PROJ_DIR$\dbg\startup_stm32l053xx.o</file>
+            <file>$PROJ_DIR$\dbg\main.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_mutex.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_sem.xcl</file>
+            <file>$PROJ_DIR$\dbg\system_stm32l0xx.xcl</file>
+            <file>$PROJ_DIR$\dbg\qf_ps.xcl</file>
+            <file>$PROJ_DIR$\dbg\os_mbox.xcl</file>
+        </outputs>
+        <file>
+            <name>[ROOT_NODE]</name>
+            <outputs>
+                <tool>
+                    <name>ILINK</name>
+                    <file> 62</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_defer.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 40</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 73</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_qeq.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 33</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 74</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\table.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 22</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 72</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_dyn.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 18</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 66</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_ps.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 27</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 92</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\include\qstamp.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 39</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 78</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\nucleo-l053r8\system_stm32l0xx.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 35</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 91</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qep_msm.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 34</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 81</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\nucleo-l053r8\iar\startup_stm32l053xx.s</name>
+            <outputs>
+                <tool>
+                    <name>AARM</name>
+                    <file> 87</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_qact.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 38</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 70</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_qmact.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 43</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 69</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\bsp.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 36</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 80</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\main.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 41</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 88</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\ports\ucos-ii\qf_port.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 42</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 82</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qep_hsm.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 24</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 76</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\philo.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 26</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 71</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_act.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 37</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 77</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\src\qf\qf_time.cpp</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 28</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 84</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_mbox.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 44</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 93</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_flag.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 21</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 83</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_tmr.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 32</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 64</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_mutex.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 20</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 89</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_q.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 30</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 79</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_time.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 23</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 85</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Ports\ARM-Cortex-M\ARMv6-M\IAR\os_cpu_a.asm</name>
+            <outputs>
+                <tool>
+                    <name>AARM</name>
+                    <file> 67</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_task.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 25</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 63</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_core.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 29</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 65</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Ports\ARM-Cortex-M\ARMv6-M\os_cpu_c.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 68</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 58</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_sem.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 31</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 90</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Ports\ARM-Cortex-M\ARMv6-M\IAR\os_dbg.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 86</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 60</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\..\..\..\..\..\3rd_party\ucos-ii\Source\os_mem.c</name>
+            <outputs>
+                <tool>
+                    <name>ICCARM</name>
+                    <file> 19</file>
+                </tool>
+                <tool>
+                    <name>BICOMP</name>
+                    <file> 75</file>
+                </tool>
+            </outputs>
+        </file>
+        <file>
+            <name>$PROJ_DIR$\dbg\dpp.out</name>
+            <outputs>
+                <tool>
+                    <name>OBJCOPY</name>
+                    <file> 59</file>
+                </tool>
+            </outputs>
+        </file>
+        <forcedrebuild>
+            <name>[MULTI_TOOL]</name>
+            <tool>ILINK</tool>
+        </forcedrebuild>
+    </configuration>
+    <configuration>
+        <name>Release</name>
+        <outputs />
+        <forcedrebuild>
+            <name>[MULTI_TOOL]</name>
+            <tool>ILINK</tool>
+        </forcedrebuild>
+    </configuration>
+    <configuration>
+        <name>Spy</name>
+        <outputs />
+        <forcedrebuild>
+            <name>[MULTI_TOOL]</name>
+            <tool>ILINK</tool>
+        </forcedrebuild>
+    </configuration>
+</project>
