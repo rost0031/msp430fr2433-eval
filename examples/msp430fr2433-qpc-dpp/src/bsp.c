@@ -50,7 +50,7 @@ static uint8_t const l_timerA_ISR = 0U;
 
 /* Local-scope objects -----------------------------------------------------*/
 /* 1MHz clock setting, see BSP_init() */
-#define BSP_MCK     1000000U
+#define BSP_MCK     8000000U
 #define BSP_SMCLK   1000000U
 
 #define LED1        (BIT0)
