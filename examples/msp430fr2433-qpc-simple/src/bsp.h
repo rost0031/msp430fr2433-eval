@@ -17,6 +17,10 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 
 /* Exported defines ----------------------------------------------------------*/
+
+#define LED1        (BIT0)
+#define LED2        (BIT1)
+
 /**
  * @brief   How many times per second that the RTOS should attempt to handle its
  * events.  Tells QPC how often to run with respect to system clock.
@@ -34,7 +38,7 @@ extern "C" {
  * @param   [in] seconds: number of seconds that is desired
  * @return  ticks: number of ticks to actually arm the QP timer on the board.
  */
-#define MSEC_TO_TICKS( ms )                    (uint32_t)(ms * BSP_TICKS_PER_MS)
+#define MSEC_TO_TICKS( ms )                    (uint16_t)(ms * BSP_TICKS_PER_MS)
 
 /**
  * @brief   Initialize the board support package

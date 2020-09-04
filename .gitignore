@@ -11,3 +11,6 @@
 dbg/
 rel/
 spy/
+.main
+.qpc_main
+.dpp

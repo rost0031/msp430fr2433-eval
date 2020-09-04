@@ -142,18 +142,6 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e) {
 static QState QpcMain_active(QpcMain * const me, QEvt const * const e) {
     QState status_;
     switch (e->sig) {
-        /*.${AOs::QpcMain::SM::active} */
-        case Q_ENTRY_SIG: {
-            /* Post a timer and disarm it right away so it can be
-             * rearmed at any point */
-            #if 0
-            QTimeEvt_postIn( &me->timerMain, (QActive *)me,
-                MSEC_TO_TICKS( 1000 ) );
-            QTimeEvt_disarm(&me->timerMain);
-            #endif
-            status_ = Q_HANDLED();
-            break;
-        }
         /*.${AOs::QpcMain::SM::active::TERMINATE} */
         case TERMINATE_SIG: {
             BSP_terminate(0);
@@ -189,6 +177,8 @@ static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e) {
         /*.${AOs::QpcMain::SM::active::FirstSubState::TIMER} */
         case TIMER_SIG: {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+
+            P1OUT ^=  LED1;  /* toggle LED1 */
             status_ = Q_HANDLED();
             break;
         }

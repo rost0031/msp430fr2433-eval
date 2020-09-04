@@ -49,13 +49,6 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-     <entry>/* Post a timer and disarm it right away so it can be
- * rearmed at any point */
-#if 0
-QTimeEvt_postIn( &amp;me-&gt;timerMain, (QActive *)me,
-    MSEC_TO_TICKS( 1000 ) );
-QTimeEvt_disarm(&amp;me-&gt;timerMain);
-#endif</entry>
      <!--${AOs::QpcMain::SM::active::TERMINATE}-->
      <tran trig="TERMINATE">
       <action>BSP_terminate(0);</action>
@@ -76,7 +69,9 @@ QTimeEvt_disarm(&amp;me-&gt;timerMain);
       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );</entry>
       <!--${AOs::QpcMain::SM::active::FirstSubState::TIMER}-->
       <tran trig="TIMER">
-       <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );</action>
+       <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+
+P1OUT ^=  LED1;  /* toggle LED1 */</action>
        <tran_glyph conn="5,23,3,-1,14">
         <action box="0,-2,7,2"/>
        </tran_glyph>
@@ -85,9 +80,7 @@ QTimeEvt_disarm(&amp;me-&gt;timerMain);
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="2,5,43,62">
-      <entry box="1,2,6,2"/>
-     </state_glyph>
+     <state_glyph node="2,5,43,62"/>
     </state>
     <state_diagram size="96,104"/>
    </statechart>

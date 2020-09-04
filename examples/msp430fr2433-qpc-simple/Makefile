@@ -141,9 +141,11 @@ A_SRCS                 +=
 
 # C source files
 C_SRCS                 += main.c \
-                          cs.c \
                           bsp.c \
+                          cs.c \
                           qpc_main.c
+                          
+                          
                           
 A_OBJS                 = $(patsubst %.s,%.o,$(A_SRCS))
 A_OBJS_EXT             = $(addprefix $(BIN_DIR)/, $(A_OBJS))

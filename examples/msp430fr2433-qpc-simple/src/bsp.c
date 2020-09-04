@@ -40,9 +40,6 @@ enum AppRecords { /* application-specific trace records */
 /* Private macros ------------------------------------------------------------*/
 /* Private variables and Local objects ---------------------------------------*/
 
-/* random seed */
-static uint32_t l_rnd;
-
 #ifdef Q_SPY
 QSTimeCtr QS_tickTime_;
 static uint8_t const l_timerA_ISR = 0U;
@@ -53,8 +50,6 @@ static uint8_t const l_timerA_ISR = 0U;
 #define BSP_MCK     8000000U
 #define BSP_SMCLK   1000000U
 
-#define LED1        (BIT0)
-#define LED2        (BIT1)
 
 #define BTN_S1      (1U << 1)
 
@@ -75,6 +70,7 @@ void BSP_init(void) {
 
     P1DIR |= (LED1 | LED2);  /* set LED1 and LED2 pins to output  */
 
+#if 1
     //Set DCO FLL reference = REFO
     CS_initClockSignal(
             CS_FLLREF,
@@ -111,13 +107,13 @@ void BSP_init(void) {
     );
 
     //Clear all OSC fault flag
-    CS_clearAllOscFlagsWithTimeout(1000);
+//    CS_clearAllOscFlagsWithTimeout(1000);
 
-    //For demonstration purpose, change DCO clock freq to 16MHz
-    CS_initFLLSettle( 16000, 487 );
+//    //For demonstration purpose, change DCO clock freq to 16MHz
+//    CS_initFLLSettle( 16000, 487 );
 
     //Clear all OSC fault flag
-    CS_clearAllOscFlagsWithTimeout(1000);
+//    CS_clearAllOscFlagsWithTimeout(1000);
 
     //Reload DCO trim values that were calculated earlier
     CS_initFLLLoadTrim(
@@ -128,6 +124,7 @@ void BSP_init(void) {
 
     //Clear all OSC fault flag
     CS_clearAllOscFlagsWithTimeout(1000);
+#endif
 
     if (QS_INIT((void *)0) == 0) { /* initialize the QS software tracing */
         Q_ERROR();
@@ -164,9 +161,11 @@ void BSP_terminate(int16_t result)
 /******************************************************************************/
 void QF_onStartup(void)
 {
+#if 0
     uint16_t clockValueSMCLK = CS_getSMCLK();
+#endif
     TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
-    TA0CCR0 = clockValueSMCLK;
+    TA0CCR0 = 999;
     TA0CTL = TASSEL__SMCLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
 
 //    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
@@ -187,7 +186,7 @@ void QK_onIdle(void) {
     QF_INT_ENABLE();
 
 #ifdef Q_SPY
-    QS_rxParse();  /* parse all the received bytes */
+//    QS_rxParse();  /* parse all the received bytes */
 
     if ((UCA0STATW & UCBUSY) == 0U) { /* TX NOT busy? */
 
@@ -231,11 +230,11 @@ Q_NORETURN Q_onAssert(char_t const * const module, int_t const loc) {
 /******************************************************************************/
 uint8_t QS_onStartup(void const *arg) {
     static uint8_t qsBuf[256];  /* buffer for QS; RAM is tight! */
-    static uint8_t qsRxBuf[80]; /* buffer for QS receive channel */
+//    static uint8_t qsRxBuf[10]; /* buffer for QS receive channel */
     //uint16_t tmp;
 
     QS_initBuf(qsBuf, sizeof(qsBuf));
-    QS_rxInitBuf(qsRxBuf, sizeof(qsRxBuf));
+//    QS_rxInitBuf(qsRxBuf, sizeof(qsRxBuf));
 
     /* USCI setup code... */
     P1SEL0 |= (BIT4 | BIT5);                             /* Configure UART pins */
@@ -253,8 +252,9 @@ uint8_t QS_onStartup(void const *arg) {
     UCA0CTLW0 &= ~UCPEN;    /* No parity */
 
     UCA0CTL1 &= ~UCSWRST;  /* initialize USCI state machine */
+#if 0
     UCA0IE |= UCRXIE;      /* Enable USCI_A1 RX interrupt */
-
+#endif
     /* setup the QS filters... */
     QS_FILTER_ON(QS_SM_RECORDS);
     //QS_FILTER_ON(QS_AO_RECORDS);
@@ -302,7 +302,7 @@ void QS_onReset(void) {
     /* write invalid password to WDT: cause a password-validation RESET */
     WDTCTL = 0xDEAD;
 }
-
+#if 0
 /******************************************************************************/
 /*! callback function to execute a user command (to be implemented in BSP) */
 void QS_onCommand(uint8_t cmdId,
@@ -319,12 +319,13 @@ void QS_onCommand(uint8_t cmdId,
         QS_U32(8, param3);
     QS_END()
 }
-
+#endif
 #endif /* Q_SPY */
 
 /* ISRs used in this project =================================================*/
 
 #ifdef Q_SPY
+#if 0
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 __interrupt void USCI_A0_ISR(void); /* prototype */
 #pragma vector=USCI_A0_VECTOR
@@ -339,9 +340,10 @@ void USCI_A0_ISR(void)
     /* NOTE: no need to call QK_ISR_ENTRY/EXIT */
     if (UCA0IV == 2) {
         uint16_t b = UCA0RXBUF;
-        QS_RX_PUT(b);
+//        QS_RX_PUT(b);
     }
 }
+#endif
 
 #endif /* Q_SPY */
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
