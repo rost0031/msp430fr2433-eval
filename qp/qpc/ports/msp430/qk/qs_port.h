@@ -47,7 +47,7 @@
 #define QS_OBJ_PTR_SIZE  2
 
 /* function pointer size in bytes */
-#define QS_FUN_PTR_SIZE  4
+#define QS_FUN_PTR_SIZE  2
 
 /*****************************************************************************
 * NOTE: QS might be used with or without other QP components, in which
