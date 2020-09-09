@@ -143,6 +143,8 @@ A_SRCS                 +=
 C_SRCS                 += main.c \
                           bsp.c \
                           cs.c \
+                          i2c.c \
+                          ntag.c \
                           qpc_main.c
                           
                           

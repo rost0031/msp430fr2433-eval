@@ -16,6 +16,17 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 
+
+
+#ifdef Q_SPY
+enum AppRecords { /* application-specific trace records */
+    DBG_OUT = QS_USER,
+    LOG_OUT,
+    WRN_OUT,
+    ERR_OUT,
+};
+#endif
+
 /* Exported defines ----------------------------------------------------------*/
 
 #define LED1        (BIT0)

@@ -24,7 +24,7 @@ NOTE: Requries QP5.</documentation>
    <!--${AOs::QpcMain::SM}-->
    <statechart properties="0x01">
     <!--${AOs::QpcMain::SM::initial}-->
-    <initial target="../1/1">
+    <initial target="../1/2">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
 QS_OBJ_DICTIONARY(&amp;l_qpcMain);
@@ -32,10 +32,11 @@ QS_FUN_DICTIONARY(&amp;QHsm_top);
 QS_FUN_DICTIONARY(&amp;QpcMain_initial);
 QS_FUN_DICTIONARY(&amp;QpcMain_active);
 QS_FUN_DICTIONARY(&amp;QpcMain_FirstSubState);
+QS_FUN_DICTIONARY(&amp;QpcMain_SecondSubState);
 
 QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
-     <initial_glyph conn="3,3,5,0,5,9">
+     <initial_glyph conn="3,3,5,0,6,7">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -56,6 +57,21 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
        <action box="0,-2,11,4"/>
       </tran_glyph>
      </tran>
+     <!--${AOs::QpcMain::SM::active::SecondSubState}-->
+     <state name="SecondSubState">
+      <documentation>/**
+ * @brief    Second substate for demo purpose
+ *
+ * @param  [in,out] me: Pointer to the state machine
+ * @param  [in,out]  e:  Pointer to the event being processed.
+ * @return status: QState type that specifies where the state
+ * machine is going next.
+ */</documentation>
+      <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
+      <state_glyph node="34,10,23,10">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
      <!--${AOs::QpcMain::SM::active::FirstSubState}-->
      <state name="FirstSubState">
       <documentation>/**
@@ -68,19 +84,19 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
  */</documentation>
       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );</entry>
       <!--${AOs::QpcMain::SM::active::FirstSubState::TIMER}-->
-      <tran trig="TIMER">
+      <tran trig="TIMER" target="../../1">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 
 P1OUT ^=  LED1;  /* toggle LED1 */</action>
-       <tran_glyph conn="5,23,3,-1,14">
+       <tran_glyph conn="6,16,3,3,28">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="5,12,34,24">
+      <state_glyph node="6,10,23,10">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="2,5,43,62"/>
+     <state_glyph node="2,5,88,62"/>
     </state>
     <state_diagram size="96,104"/>
    </statechart>
@@ -154,6 +170,8 @@ $declare(AOs::QpcMain_ctor)
 #include &quot;qpc_main.h&quot;
 #include &quot;bsp.h&quot;
 #include &quot;signals.h&quot;
+#include &quot;ntag.h&quot;
+#include &quot;i2c.h&quot;
 
 /* Compile-time called macros ------------------------------------------------*/
 Q_DEFINE_THIS_FILE

@@ -12,6 +12,7 @@
 #include "qpc.h"
 #include "bsp.h"
 #include "cs.h"
+#include "i2c.h"
 #include "signals.h"
 
 
@@ -20,16 +21,11 @@ Q_DEFINE_THIS_FILE
 
 /* Private typedef -----------------------------------------------------------*/
 
-#ifdef Q_SPY
-enum AppRecords { /* application-specific trace records */
-    PHILO_STAT = QS_USER,
-    COMMAND_STAT
-};
-#endif
-
 /* Private define ------------------------------------------------------------*/
 #define CS_MCLK_DESIRED_FREQUENCY_IN_KHZ    (8000)
+#define CS_SMCLK_DESIRED_FREQUENCY_IN_KHZ   (1000)
 #define CS_MCLK_FLLREF_RATIO                (243)
+#define CS_SMCLK_FLLREF_RATIO               (30)
 
 #ifdef Q_SPY
 /* UART1 pins TX:P1.4, RX:P1.5 */
@@ -78,6 +74,12 @@ void BSP_init(void) {
             CS_CLOCK_DIVIDER_1
     );
 
+    //Set Ratio and Desired MCLK Frequency and initialize DCO
+    CS_initFLLSettle(
+            CS_SMCLK_DESIRED_FREQUENCY_IN_KHZ,
+            CS_SMCLK_FLLREF_RATIO
+    );
+
     //Set ACLK = REFO
     CS_initClockSignal(
             CS_ACLK,
@@ -105,15 +107,15 @@ void BSP_init(void) {
             CS_MCLK_FLLREF_RATIO,
             &param
     );
-
+#if 0
     //Clear all OSC fault flag
-//    CS_clearAllOscFlagsWithTimeout(1000);
+    CS_clearAllOscFlagsWithTimeout(1000);
 
 //    //For demonstration purpose, change DCO clock freq to 16MHz
-//    CS_initFLLSettle( 16000, 487 );
+    CS_initFLLSettle( 16000, 487 );
 
     //Clear all OSC fault flag
-//    CS_clearAllOscFlagsWithTimeout(1000);
+    CS_clearAllOscFlagsWithTimeout(1000);
 
     //Reload DCO trim values that were calculated earlier
     CS_initFLLLoadTrim(
@@ -121,33 +123,22 @@ void BSP_init(void) {
             CS_MCLK_FLLREF_RATIO,
             &param
     );
-
+#endif
     //Clear all OSC fault flag
     CS_clearAllOscFlagsWithTimeout(1000);
 #endif
+
+    I2C_init();
 
     if (QS_INIT((void *)0) == 0) { /* initialize the QS software tracing */
         Q_ERROR();
     }
     QS_OBJ_DICTIONARY(&l_timerA_ISR);
-    QS_USR_DICTIONARY(PHILO_STAT);
-    QS_USR_DICTIONARY(COMMAND_STAT);
+    QS_USR_DICTIONARY(DBG_OUT);
+    QS_USR_DICTIONARY(LOG_OUT);
+    QS_USR_DICTIONARY(WRN_OUT);
+    QS_USR_DICTIONARY(ERR_OUT);
 }
-
-///******************************************************************************/
-//void BSP_displayPhilStat(uint8_t n, char const *stat) {
-//    if (stat[0] == 'h') { /* is Philo hungry? */
-//        P1OUT |=  LED1;  /* turn LED1 on */
-//    }
-//    else {
-//        P1OUT &= ~LED1;  /* turn LED1 off */
-//    }
-//
-//    QS_BEGIN(PHILO_STAT, AO_Philo[n]) /* application-specific record begin */
-//        QS_U8(1, n);                  /* Philosopher number */
-//        QS_STR(stat);                 /* Philosopher status */
-//    QS_END()
-//}
 
 /******************************************************************************/
 void BSP_terminate(int16_t result)
@@ -161,16 +152,19 @@ void BSP_terminate(int16_t result)
 /******************************************************************************/
 void QF_onStartup(void)
 {
-#if 0
-    uint16_t clockValueSMCLK = CS_getSMCLK();
-#endif
+#define USE_CS_MODULE 1
+
     TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
+#if USE_CS_MODULE
+    TA0CCR0 = CS_getSMCLK();
+#else
     TA0CCR0 = 999;
+#endif
     TA0CTL = TASSEL__SMCLK | MC_1 | TACLR;         // SMCLK, upmode, clear TAR
 
-//    TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
-//    TA0CCR0 = BSP_MCK / BSP_TICKS_PER_SEC;
-//    TA0CTL = TASSEL_2 + MC_1 + TACLR;         // SMCLK, upmode, clear TAR
+    I2C_start();
+
+    __enable_interrupt();       // enable all interrupts --> GIE = 1 (HIGH)
 }
 
 /******************************************************************************/
