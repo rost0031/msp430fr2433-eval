@@ -90,7 +90,8 @@ void I2C_init(void)
      * equal to the desired speed.  The numerator is biased to favor a larger
      * clock divider so that the resulting clock is always less than or equal
      * to the desired clock, never greater. */
-    UCB0BRW = 0x2; //(CS_getSMCLK() / I2C_SPEED_KBPS);
+    UCB0BRW = 0x2; //(CS_getSMCLK() / I2C_SPEED_KBPS); // 200KHz
+//    UCB0BRW = 0xA; //(CS_getSMCLK() / I2C_SPEED_KBPS); // 100KHz
 
 }
 
@@ -215,6 +216,10 @@ inline static void I2C_startRx(uint8_t bytes)
     UCB0IE |= UCRXIE;                      /* Enable RX interrupt */
     UCB0CTLW0 &= ~UCTR; /* Transmit/Receive bit clear for receive */
     UCB0CTLW0 |= UCTXSTT;        /* I2C start with TX bit cleared */
+    if (bytes == 1) {
+        while((UCB0CTLW0 & UCTXSTT));
+        UCB0CTLW0 |= UCTXSTP;      // Send stop condition
+    }
 }
 
 /******************************************************************************/
@@ -264,10 +269,10 @@ void USCIB0_ISR(void)
         case USCI_I2C_UCSTPIFG: {   // Vector 8: STPIFG - Stop detected
             /* If we expect to receive after a stop, switch to receiver mode and
              * start that process. */
-            if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
-                    (i2cData.bufferRx.pData)) {
-                I2C_startRx(i2cData.bufferRx.maxLen);
-            }
+//            if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
+//                    (i2cData.bufferRx.pData)) {
+//                I2C_startRx(i2cData.bufferRx.maxLen);
+//            }
 
             if (i2cData.callbacks[I2CEvtStopCondition]) {
 //                i2cData.callbacks[I2CEvtStopCondition]();
@@ -287,7 +292,9 @@ void USCIB0_ISR(void)
             /* Byte received */
             if (i2cData.bufferRx.len < i2cData.bufferRx.maxLen) {
 //                i2cData.bufferRx.pData[i2cData.bufferRx.len++] = rxByte;
-                if ((i2cData.bufferRx.len+1) == i2cData.bufferRx.maxLen) {
+
+                if ((i2cData.bufferRx.maxLen != 1) &&
+                    (i2cData.bufferRx.len+1) == i2cData.bufferRx.maxLen) {
                     UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
                 }
                 i2cData.bufferRx.pData[i2cData.bufferRx.len++] = UCB0RXBUF;
@@ -311,6 +318,11 @@ void USCIB0_ISR(void)
                     UCB0TXBUF = i2cData.bufferTx.pData[i2cData.bufferTx.len++];
                 } else {
                     UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
+
+                    if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
+                            (i2cData.bufferRx.pData)) {
+                        I2C_startRx(i2cData.bufferRx.maxLen);
+                    }
                 }
 
 //                if (i2cData.bufferTx.len == i2cData.bufferTx.maxLen) {
