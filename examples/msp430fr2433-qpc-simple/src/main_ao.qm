@@ -34,6 +34,10 @@ QS_FUN_DICTIONARY(&amp;QpcMain_active);
 QS_FUN_DICTIONARY(&amp;QpcMain_FirstSubState);
 QS_FUN_DICTIONARY(&amp;QpcMain_SecondSubState);
 
+QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
      <initial_glyph conn="3,3,5,0,6,7">
@@ -67,7 +71,11 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-      <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
+      <entry>//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+
+/* Create and post event to do a NTAG register read command */
+QEvt* pEvt = Q_NEW(QEvt, NTAG_REG_READ_SIG);
+QACTIVE_POST(AO_QpcNtag, pEvt, AO_QpcMain);</entry>
       <state_glyph node="34,10,23,10">
        <entry box="1,2,6,2"/>
       </state_glyph>
@@ -124,10 +132,10 @@ QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
  </package>
  <!--${.}-->
  <directory name=".">
-  <!--${.::qpc_main.h}-->
-  <file name="qpc_main.h">
+  <!--${.::main_ao.h}-->
+  <file name="main_ao.h">
    <text>/**
- * @file    qpc_main.h
+ * @file    main_ao.h
  * @brief   Main QPC Active Object
  *
  * Copyright 2020, Harry Rostovtsev.
@@ -135,8 +143,8 @@ QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
  */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef QPC_MAIN_H
-#define QPC_MAIN_H
+#ifndef __MAIN_AO_H
+#define __MAIN_AO_H
 
 /* Includes ------------------------------------------------------------------*/
 /* Exported defines ----------------------------------------------------------*/
@@ -152,13 +160,13 @@ $declare(AOs::AO_QpcMain)
 $declare(AOs::QpcMain_ctor)
 
 
-#endif                                                          /* QPC_MAIN_H */
+#endif                                                         /* __MAIN_AO_H */
 </text>
   </file>
-  <!--${.::qpc_main.c}-->
-  <file name="qpc_main.c">
+  <!--${.::main_ao.c}-->
+  <file name="main_ao.c">
    <text>/**
- * @file    qpc_main.c
+ * @file    main_ao.c
  * @brief   Main QPC Active Object
  *
  * Copyright 2020, Harry Rostovtsev.
@@ -167,25 +175,25 @@ $declare(AOs::QpcMain_ctor)
 
 /* Includes ------------------------------------------------------------------*/
 #include &quot;qpc.h&quot;
-#include &quot;qpc_main.h&quot;
+#include &quot;main_ao.h&quot;
 #include &quot;bsp.h&quot;
 #include &quot;signals.h&quot;
-#include &quot;ntag.h&quot;
-#include &quot;i2c.h&quot;
+//#include &quot;ntag.h&quot;
+#include &quot;ntag_ao.h&quot;
+//#include &quot;i2c.h&quot;
 
 /* Compile-time called macros ------------------------------------------------*/
-Q_DEFINE_THIS_FILE
+//Q_DEFINE_THIS_FILE
 
 /* Private typedefs ----------------------------------------------------------*/
 /* Private defines -----------------------------------------------------------*/
 /* Private macros ------------------------------------------------------------*/
-/* Private function prototypes -----------------------------------------------*/
-
-/* Private variables and Local objects ---------------------------------------*/
+/* Private variables, objects, and function prototypes -----------------------*/
 $declare(AOs::QpcMain)
+
 static QpcMain l_qpcMain;                      /**&lt; single instance of the AO */
-QActive * const AO_QpcMain = 
-                 (QActive *)&amp;l_qpcMain.super;        /**&lt; &quot;opaque&quot; AO pointer */
+
+QActive * const AO_QpcMain = (QActive *)&amp;l_qpcMain.super; /**&lt; Opaque pointer */
 
 /* Public and Exported functions ---------------------------------------------*/
 $define(AOs::QpcMain_ctor)

@@ -145,7 +145,8 @@ C_SRCS                 += main.c \
                           cs.c \
                           i2c.c \
                           ntag.c \
-                          qpc_main.c
+                          main_ao.c \
+                          ntag_ao.c
                           
                           
                           

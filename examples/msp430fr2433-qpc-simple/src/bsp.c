@@ -223,6 +223,7 @@ Q_NORETURN Q_onAssert(char_t const * const module, int_t const loc) {
 
 /******************************************************************************/
 uint8_t QS_onStartup(void const *arg) {
+    (void)arg;                                    /* Prevent compiler warning */
     static uint8_t qsBuf[256];  /* buffer for QS; RAM is tight! */
 //    static uint8_t qsRxBuf[10]; /* buffer for QS receive channel */
     //uint16_t tmp;

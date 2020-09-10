@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="5.0.2" links="1">
+ <documentation>Dining Philosopher Problem example
+
+NOTE: Requries QP5.</documentation>
+ <!--${qpc}-->
+ <framework name="qpc"/>
+ <!--${Events}-->
+ <package name="Events" stereotype="0x01">
+  <!--${Events::QpcNtagEvt}-->
+  <class name="QpcNtagEvt" superclass="qpc::QEvt">
+   <documentation>/** @brief NTAG event */</documentation>
+  </class>
+ </package>
+ <!--${AOs}-->
+ <package name="AOs" stereotype="0x02">
+  <!--${AOs::QpcNtag}-->
+  <class name="QpcNtag" superclass="qpc::QActive">
+   <documentation>/**
+ * @brief	NTAG &quot;class&quot;
+ */</documentation>
+   <!--${AOs::QpcNtag::timerMain}-->
+   <attribute name="timerMain" type="QTimeEvt" visibility="0x01" properties="0x00">
+    <documentation>/**&lt; Main timer. */</documentation>
+   </attribute>
+   <!--${AOs::QpcNtag::SM}-->
+   <statechart properties="0x03">
+    <!--${AOs::QpcNtag::SM::initial}-->
+    <initial target="../1/0">
+     <action>(void)e; /* suppress the compiler warning about unused parameter */
+
+QS_OBJ_DICTIONARY(&amp;l_qpcNtag);
+QS_FUN_DICTIONARY(&amp;QHsm_top);
+QS_FUN_DICTIONARY(&amp;QpcNtag_initial);
+QS_FUN_DICTIONARY(&amp;QpcNtag_active);
+QS_FUN_DICTIONARY(&amp;QpcNtag_CheckTag);
+
+QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
+
+QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);</action>
+     <initial_glyph conn="3,3,5,0,6,7">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <!--${AOs::QpcNtag::SM::active}-->
+    <state name="active">
+     <documentation>/**
+ * @brief    Top-level state where everything happens
+ *
+ * @param  [in,out] me: Pointer to the state machine
+ * @param  [in,out]  e:  Pointer to the event being processed.
+ * @return status: QState type that specifies where the state
+ * machine is going next.
+ */</documentation>
+     <!--${AOs::QpcNtag::SM::active::CheckTag}-->
+     <state name="CheckTag">
+      <documentation>/**
+ * @brief    First substate for demo purpose
+ *
+ * @param  [in,out] me: Pointer to the state machine
+ * @param  [in,out]  e:  Pointer to the event being processed.
+ * @return status: QState type that specifies where the state
+ * machine is going next.
+ */</documentation>
+      <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+NTAG_init();</entry>
+      <!--${AOs::QpcNtag::SM::active::CheckTag::TIMER}-->
+      <tran trig="TIMER">
+       <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+</action>
+       <tran_glyph conn="5,16,3,-1,28">
+        <action box="0,-2,7,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::QpcNtag::SM::active::CheckTag::NTAG_REG_READ}-->
+      <tran trig="NTAG_REG_READ">
+       <action>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+</action>
+       <tran_glyph conn="5,26,3,-1,28">
+        <action box="0,-2,16,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="5,10,48,43">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="2,5,88,62"/>
+    </state>
+    <state_diagram size="96,104"/>
+   </statechart>
+  </class>
+  <!--${AOs::AO_QpcNtag}-->
+  <attribute name="AO_QpcNtag" type="QActive * const" visibility="0x00" properties="0x00">
+   <documentation>/** &quot;opaque&quot; pointer to the Active Object */</documentation>
+  </attribute>
+  <!--${AOs::QpcNtag_ctor}-->
+  <operation name="QpcNtag_ctor" type="void" visibility="0x00" properties="0x00">
+   <documentation>/**
+ * @brief     C &quot;constructor&quot; for this &quot;class&quot;.
+ *
+ * Initializes all the timers and queues used by the AO and sets of the
+ * first state.
+ *
+ * @return None
+ */</documentation>
+   <code>QpcNtag *me = &amp;l_qpcNtag;
+
+QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;QpcNtag_initial));
+
+QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
+  </operation>
+ </package>
+ <!--${.}-->
+ <directory name=".">
+  <!--${.::ntag_ao.h}-->
+  <file name="ntag_ao.h">
+   <text>/**
+ * @file    ntag_ao.h
+ * @brief   NTAG5 QPC Active Object
+ *
+ * Copyright 2020, Harry Rostovtsev.
+ * All other rights reserved.
+ */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __NTAG_AO_H
+#define __NTAG_AO_H
+
+/* Includes ------------------------------------------------------------------*/
+/* Exported defines ----------------------------------------------------------*/
+/* Exported macros -----------------------------------------------------------*/
+/* Exported types ------------------------------------------------------------*/
+
+$declare(Events::QpcNtagEvt)
+
+/* Exported constants --------------------------------------------------------*/
+$declare(AOs::AO_QpcNtag)
+
+/* Exported functions --------------------------------------------------------*/
+$declare(AOs::QpcNtag_ctor)
+
+
+#endif                                                         /* __MAIN_AO_H */
+</text>
+  </file>
+  <!--${.::ntag_ao.c}-->
+  <file name="ntag_ao.c">
+   <text>/**
+ * @file    main_ao.c
+ * @brief   Main QPC Active Object
+ *
+ * Copyright 2020, Harry Rostovtsev.
+ * All other rights reserved.
+ */
+
+/* Includes ------------------------------------------------------------------*/
+#include &quot;qpc.h&quot;
+#include &quot;ntag_ao.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;signals.h&quot;
+#include &quot;ntag.h&quot;
+#include &quot;i2c.h&quot;
+
+/* Compile-time called macros ------------------------------------------------*/
+//Q_DEFINE_THIS_FILE
+
+/* Private typedefs ----------------------------------------------------------*/
+/* Private defines -----------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables, objects, and function prototypes -----------------------*/
+$declare(AOs::QpcNtag)
+
+static QpcNtag l_qpcNtag;                      /**&lt; single instance of the AO */
+
+QActive * const AO_QpcNtag = (QActive *)&amp;l_qpcNtag.super; /**&lt; Opaque pointer */
+
+/* Public and Exported functions ---------------------------------------------*/
+$define(AOs::QpcNtag_ctor)
+
+/* Private functions ---------------------------------------------------------*/
+$define(AOs::QpcNtag)</text>
+  </file>
+ </directory>
+</model>

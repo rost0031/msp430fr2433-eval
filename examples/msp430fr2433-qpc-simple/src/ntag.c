@@ -49,7 +49,8 @@ static const uint16_t ntagRegisterMap[][3] =
         {0x10AD,          0,              1}      /**< I2CM STATUS Reg */
 };
 
-uint8_t data[3] = {0x00};
+uint8_t dataTx[6] = {0x00};
+uint8_t dataRx[6] = {0x00};
 /* Private function prototypes -----------------------------------------------*/
 /* Public and Exported functions ---------------------------------------------*/
 
@@ -57,21 +58,28 @@ uint8_t data[3] = {0x00};
 /******************************************************************************/
 void NTAG_init(void)
 {
-
-
+    /* Initialize tag by reading 2 bytes
+     * (for some reason the example code does this?) */
+//    I2C_receiveNonBlocking(NTAG_I2C_ADDRESS, 2, dataRx);
 }
 
 /******************************************************************************/
 void NTAG_readReg(NTAGRegNumber_t regNum)
 {
-    data[0] = (uint8_t)(ntagRegisterMap[regNum][0] >> 8);
-    data[1] = (uint8_t)(ntagRegisterMap[regNum][0]);
-    data[2] = (uint8_t)(ntagRegisterMap[regNum][1]);
+    dataTx[0] = (uint8_t)(ntagRegisterMap[regNum][0] >> 8);
+    dataTx[1] = (uint8_t)(ntagRegisterMap[regNum][0]);
+    dataTx[2] = (uint8_t)(ntagRegisterMap[regNum][1]);
 
-    uint8_t rxData[2] = {0x00};
 
-    I2C_writeBlocking(NTAG_I2C_ADDRESS, sizeof(data), data);
 
+//    I2C_transmitNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx);
+    I2C_exchangeNonBlocking(
+            NTAG_I2C_ADDRESS,
+            3,
+            dataTx,
+            1,
+            dataRx
+    );
     /* We have to first do a write and then do a read (See READ_REGISTER cmd) */
 
 //    I2C_readBlocking( NTAG_I2C_ADDRESS, data, sizeof(data), rxData, sizeof(rxData));
