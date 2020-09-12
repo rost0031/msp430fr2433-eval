@@ -31,6 +31,8 @@ typedef enum {
     ERR_HW_BUSY             = 0x05, /**< HW busy */
     ERR_HW_TIMEOUT          = 0x06, /**< HW timeout */
     ERR_HW_CONFIG           = 0x07, /**< HW not or misconfigured */
+    ERR_HW_UNKNOWN_IRQ      = 0x08, /**< Unknown interrupt detected */
+    ERR_HW_NACK             = 0x09, /**< No reply (or NACK) from HW */
 
     ERR_UNIMPLEMENTED       = 0xFE, /**< Unimplemented feature */
     ERR_UNKNOWN             = 0xFF  /**< Max Error code*/

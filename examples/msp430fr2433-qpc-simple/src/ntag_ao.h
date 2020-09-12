@@ -29,19 +29,23 @@
 #define __NTAG_AO_H
 
 /* Includes ------------------------------------------------------------------*/
+#include "ntag.h"
 /* Exported defines ----------------------------------------------------------*/
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 
-/*.$declare${Events::QpcNtagEvt} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*.$declare${Events::NtagReadRegEvt} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 /** @brief NTAG event */
-/*.${Events::QpcNtagEvt} ...................................................*/
+/*.${Events::NtagReadRegEvt} ...............................................*/
 typedef struct {
 /* protected: */
     QEvt super;
-} QpcNtagEvt;
-/*.$enddecl${Events::QpcNtagEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
+    /** Which register to read */
+    NTAGRegNumber_t reg;
+} NtagReadRegEvt;
+/*.$enddecl${Events::NtagReadRegEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /* Exported constants --------------------------------------------------------*/
 /*.$declare${AOs::AO_QpcNtag} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/

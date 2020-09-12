@@ -20,32 +20,61 @@ extern "C" {
 #include <stdbool.h>
 
 /* Exported defines ----------------------------------------------------------*/
+
+#define I2C_TX_SHIFT        (0x00)
+#define I2C_RX_SHIFT        (0x04)
+
+#define I2C_IN_RESET        (0x00)
+#define I2C_READY           (0x01)
+#define I2C_OP_REQ          (0x03)
+#define I2C_BUSY            (0x02)
+#define I2C_DONE            (0x07)
+
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 
+/**
+ * @brief   I2C simple state machine states
+ */
 typedef enum {
-    I2CEvtStart = 0,
-    I2CEvtStopCondition = I2CEvtStart,
-    I2CEvtByteCountReached,
-    I2CEvtReadyToTx,
-    I2CEvtReadyToRx,
-    I2CEvtMax,
-}I2CEvt_t;
+    I2CStateInReset    = 0,
+
+    I2CStateReady      = 1,
+    I2CStateTxInProg   = 2,
+    I2CStateTxDone     = 3,
+    I2CStateRxInProg   = 4,
+    I2CStateRxDone     = 5,
+} I2CState_t;
+
+/**
+ * @brief   I2C events that can occur in the driver
+ */
+typedef enum {
+    I2CEvtStart = 0,                      /**< For indexing through the enums */
+    I2CEvtStopCondition = I2CEvtStart,          /**< I2C Stop condition event */
+    I2CEvtExchangeDone,            /**< I2C TX and RX exchange finished event */
+    I2CEvtTxDone,                                  /**< I2C TX finished event */
+    I2CEvtRxDone,                                  /**< I2C RX finished event */
+    I2CEvtMax,                            /**< For indexing through the enums */
+} I2CEvt_t;
+
+struct I2CData;       /**< Forward declaration to prevent circular dependency */
 
 /**
  * @brief   I2C callback function pointer type
  */
 typedef void (*I2CCallback_t) (
-        Buffer_t*                     /**< [in] pointer to buffer information */
+        const struct I2CData* const                /**< [in] I2C data pointer */
 );
 
 /**
  * @brief   I2C data
- * This structure holds any dynamic data for the I2C bus including callbacks array,
- * RX/TX buffer information, and other things that should live in RAM as opposed
- * to flash.
+ * This structure holds any dynamic data for the I2C bus that should live in
+ * RAM as opposed to flash.
  */
-typedef struct {
+typedef struct I2CData {
+    I2CState_t     state;                              /**< Current I2C state */
+    Error_t        status;                                /**< Current status */
     I2CCallback_t  callbacks[I2CEvtMax];              /**< Array of callbacks */
     Buffer_t       bufferRx;                       /**< RX Buffer information */
     Buffer_t       bufferTx;                       /**< TX Buffer information */

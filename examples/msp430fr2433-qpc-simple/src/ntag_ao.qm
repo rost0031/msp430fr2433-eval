@@ -7,9 +7,13 @@ NOTE: Requries QP5.</documentation>
  <framework name="qpc"/>
  <!--${Events}-->
  <package name="Events" stereotype="0x01">
-  <!--${Events::QpcNtagEvt}-->
-  <class name="QpcNtagEvt" superclass="qpc::QEvt">
+  <!--${Events::NtagReadRegEvt}-->
+  <class name="NtagReadRegEvt" superclass="qpc::QEvt">
    <documentation>/** @brief NTAG event */</documentation>
+   <!--${Events::NtagReadRegEvt::reg}-->
+   <attribute name="reg" type="NTAGRegNumber_t" visibility="0x01" properties="0x00">
+    <documentation>/** Which register to read */</documentation>
+   </attribute>
   </class>
  </package>
  <!--${AOs}-->
@@ -26,7 +30,7 @@ NOTE: Requries QP5.</documentation>
    <!--${AOs::QpcNtag::SM}-->
    <statechart properties="0x03">
     <!--${AOs::QpcNtag::SM::initial}-->
-    <initial target="../1/0">
+    <initial target="../1/1">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
 QS_OBJ_DICTIONARY(&amp;l_qpcNtag);
@@ -41,7 +45,7 @@ QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);</action>
-     <initial_glyph conn="3,3,5,0,6,7">
+     <initial_glyph conn="3,3,5,0,7,7">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -71,7 +75,7 @@ NTAG_init();</entry>
       <tran trig="TIMER">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 </action>
-       <tran_glyph conn="5,16,3,-1,28">
+       <tran_glyph conn="46,16,3,-1,28">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
@@ -79,17 +83,118 @@ NTAG_init();</entry>
       <tran trig="NTAG_REG_READ">
        <action>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 </action>
-       <tran_glyph conn="5,26,3,-1,28">
+       <tran_glyph conn="46,26,3,-1,28">
         <action box="0,-2,16,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="5,10,48,43">
+      <state_glyph node="46,10,48,43">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="2,5,88,62"/>
+     <!--${AOs::QpcNtag::SM::active::idle}-->
+     <state name="idle">
+      <documentation>/**
+ * @brief    First substate for demo purpose
+ *
+ * @param  [in,out] me: Pointer to the state machine
+ * @param  [in,out]  e:  Pointer to the event being processed.
+ * @return status: QState type that specifies where the state
+ * machine is going next.
+ */</documentation>
+      <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+NTAG_init();</entry>
+      <!--${AOs::QpcNtag::SM::active::idle::TIMER}-->
+      <tran trig="TIMER">
+       <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+</action>
+       <tran_glyph conn="6,16,3,-1,28">
+        <action box="0,-2,7,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::QpcNtag::SM::active::idle::NTAG_REG_READ}-->
+      <tran trig="NTAG_REG_READ">
+       <action>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+</action>
+       <tran_glyph conn="6,26,3,-1,28">
+        <action box="0,-2,16,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="6,10,25,43">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="2,5,119,62"/>
     </state>
-    <state_diagram size="96,104"/>
+    <state_diagram size="133,104"/>
+   </statechart>
+  </class>
+  <!--${AOs::NtagCmd}-->
+  <class name="NtagCmd" superclass="qpc::QHsm">
+   <documentation>/** NTAG command orthogonal component */</documentation>
+   <!--${AOs::NtagCmd::byteOffset}-->
+   <attribute name="byteOffset" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** Keep track of which byte offset we are reading/writing in a register that is larger than a single byte */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmd::SM}-->
+   <statechart properties="0x01">
+    <!--${AOs::NtagCmd::SM::initial}-->
+    <initial target="../1">
+     <action>static uint8_t dict_sent;
+
+if (!dict_sent) {
+    QS_OBJ_DICTIONARY(&amp;l_mine1[0]); /* obj. dictionaries for Mine1 pool */
+    QS_OBJ_DICTIONARY(&amp;l_mine1[1]);
+    QS_OBJ_DICTIONARY(&amp;l_mine1[2]);
+    QS_OBJ_DICTIONARY(&amp;l_mine1[3]);
+    QS_OBJ_DICTIONARY(&amp;l_mine1[4]);
+
+    QS_FUN_DICTIONARY(&amp;Mine1_initial);/*fun. dictionaries for Mine1 HSM */
+    QS_FUN_DICTIONARY(&amp;Mine1_unused);
+    QS_FUN_DICTIONARY(&amp;Mine1_used);
+    QS_FUN_DICTIONARY(&amp;Mine1_planted);
+    QS_FUN_DICTIONARY(&amp;Mine1_exploding);
+
+    dict_sent = 1U;
+}
+/* local signals */
+QS_SIG_DICTIONARY(MINE_PLANT_SIG,    me);
+QS_SIG_DICTIONARY(MINE_DISABLED_SIG, me);
+QS_SIG_DICTIONARY(MINE_RECYCLE_SIG,  me);
+QS_SIG_DICTIONARY(SHIP_IMG_SIG,      me);
+QS_SIG_DICTIONARY(MISSILE_IMG_SIG,   me);
+
+(void)e; /* avoid the &quot;unreferenced parameter&quot; warning */</action>
+     <initial_glyph conn="2,2,5,0,3,2">
+      <action box="0,-2,11,2"/>
+     </initial_glyph>
+    </initial>
+    <!--${AOs::NtagCmd::SM::idle}-->
+    <state name="idle">
+     <entry>me-&gt;byteCounter = 0;</entry>
+     <!--${AOs::NtagCmd::SM::idle::NTAG_REG_READ}-->
+     <tran trig="NTAG_REG_READ" target="../../2/0">
+      <action>me-byteOffset = NTAG_getRegSize(((NtagReadRegEvt_t* const)e)-&gt;reg);</action>
+      <tran_glyph conn="2,13,3,3,34">
+       <action box="0,-2,14,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,4,19,80">
+      <entry box="1,2,6,2"/>
+     </state_glyph>
+    </state>
+    <!--${AOs::NtagCmd::SM::Busy}-->
+    <state name="Busy">
+     <!--${AOs::NtagCmd::SM::Busy::RegReadByte}-->
+     <state name="RegReadByte">
+      <state_glyph node="36,8,23,14"/>
+     </state>
+     <!--${AOs::NtagCmd::SM::Busy::RegWriteByte}-->
+     <state name="RegWriteByte">
+      <state_glyph node="36,33,23,14"/>
+     </state>
+     <state_glyph node="34,4,45,80"/>
+    </state>
+    <state_diagram size="145,91"/>
    </statechart>
   </class>
   <!--${AOs::AO_QpcNtag}-->
@@ -130,11 +235,12 @@ QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
 #define __NTAG_AO_H
 
 /* Includes ------------------------------------------------------------------*/
+#include &quot;ntag.h&quot;
 /* Exported defines ----------------------------------------------------------*/
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 
-$declare(Events::QpcNtagEvt)
+$declare(Events::NtagReadRegEvt)
 
 /* Exported constants --------------------------------------------------------*/
 $declare(AOs::AO_QpcNtag)

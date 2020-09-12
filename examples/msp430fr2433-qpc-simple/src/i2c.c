@@ -20,6 +20,7 @@
 Q_DEFINE_THIS_FILE
 
 /* Private typedef -----------------------------------------------------------*/
+
 /* Private define ------------------------------------------------------------*/
 
 #define I2C_SPEED_KBPS (400000)
@@ -36,6 +37,8 @@ Q_DEFINE_THIS_FILE
  * This data structure has to live in RAM since it will be modified at runtime.
  */
 static I2CData_t i2cData = {
+        .state = I2CStateInReset,
+        .status = ERR_NONE,
         .callbacks = {0},
         .bufferRx = {0},
         .bufferTx = {0},
@@ -65,6 +68,8 @@ inline static void I2C_startTx(
 void I2C_init(void)
 {
 
+    i2cData.status = ERR_NONE;
+    i2cData.state = I2CStateInReset;
     I2C_clearBuffers();
 
     /* Set up Pins for I2C
@@ -98,6 +103,7 @@ void I2C_init(void)
 /******************************************************************************/
 void I2C_start(void)
 {
+    i2cData.state = I2CStateReady;
     UCB0CTL1 &= ~UCSWRST;                                   /* Clear SW reset */
 
     UCB0IE |= (
@@ -111,6 +117,7 @@ void I2C_start(void)
 /******************************************************************************/
 void I2C_stop(void)
 {
+    i2cData.state = I2CStateInReset;
     UCB0CTL1 |= UCSWRST;                                     /* Put into Reset */
     UCB0IE = 0;
 }
@@ -136,6 +143,10 @@ void I2C_exchangeNonBlocking(
         uint8_t* const pDataRx
 )
 {
+    i2cData.status = ERR_NONE;
+
+    i2cData.state = I2CStateTxInProg;
+
     /* TX buffer data */
     i2cData.bufferTx.maxLen = nBytesTx;
     i2cData.bufferTx.len = 0;
@@ -159,6 +170,9 @@ void I2C_receiveNonBlocking(
         uint8_t* const pData
 )
 {
+    i2cData.status = ERR_NONE;
+    i2cData.state = I2CStateRxInProg;
+
     I2C_clearBuffers();
 
     i2cData.bufferRx.maxLen = nBytes;
@@ -178,6 +192,8 @@ void I2C_transmitNonBlocking(
         uint8_t* const pData
 )
 {
+    i2cData.status = ERR_NONE;
+    i2cData.state = I2CStateTxInProg;
 
     I2C_clearBuffers();
 
@@ -185,8 +201,7 @@ void I2C_transmitNonBlocking(
     i2cData.bufferTx.len = 0;
     i2cData.bufferTx.pData = pData;
 
-    /* Initialize slave address and interrupts */
-    UCB0I2CSA = devAddr;
+    UCB0I2CSA = devAddr;                          /* Set slave device address */
 
     I2C_startTx(nBytes);
 }
@@ -211,14 +226,22 @@ inline static void I2C_startRx(uint8_t bytes)
 {
     UCB0TBCNT = bytes;
 
-    UCB0IFG &= ~(UCTXIFG + UCRXIFG);  /* Clear pending interrupts */
-    UCB0IE &= ~UCTXIE;                    /* Disable TX interrupt */
-    UCB0IE |= UCRXIE;                      /* Enable RX interrupt */
-    UCB0CTLW0 &= ~UCTR; /* Transmit/Receive bit clear for receive */
-    UCB0CTLW0 |= UCTXSTT;        /* I2C start with TX bit cleared */
+    UCB0IFG &= ~(UCTXIFG | UCRXIFG);              /* Clear pending interrupts */
+    UCB0IE &= ~UCTXIE;                                /* Disable TX interrupt */
+    UCB0IE |= UCRXIE;                                  /* Enable RX interrupt */
+    UCB0CTLW0 &= ~UCTR;             /* Transmit/Receive bit clear for receive */
+    UCB0CTLW0 |= UCTXSTT;                    /* I2C start with TX bit cleared */
+
+
+    /* if the transfer is a single byte, issue a manual stop before reading the
+     * only byte because msp430 has a stupid I2C implementation - See
+     * MSP430FR2433 ref manual, section 24.3.5.2.2 - I2C Master Receiver Mode */
     if (bytes == 1) {
+        /* Yeah, this is ugly since we are doing this in an ISR but there's
+         * really no way around this. Can't listen for I2C START condition
+         * interrupt in master mode. Seriously TI, WTF? */
         while((UCB0CTLW0 & UCTXSTT));
-        UCB0CTLW0 |= UCTXSTP;      // Send stop condition
+        UCB0CTLW0 |= UCTXSTP;                          /* Send stop condition */
     }
 }
 
@@ -227,16 +250,15 @@ inline static void I2C_startTx(uint8_t bytes)
 {
     UCB0TBCNT = bytes;
 
-    UCB0IFG &= ~(UCTXIFG + UCRXIFG);  /* Clear pending interrupts */
-    UCB0IE &= ~UCRXIE;                    /* Disable RX interrupt */
-    UCB0IE |= UCTXIE;                      /* Enable TX interrupt */
+    UCB0IFG &= ~(UCTXIFG + UCRXIFG);              /* Clear pending interrupts */
+    UCB0IE &= ~UCRXIE;                                /* Disable RX interrupt */
+    UCB0IE |= UCTXIE;                                  /* Enable TX interrupt */
 
-    UCB0CTLW0 |= (UCTR | UCTXSTT);   /* I2C start with TX bit set */
+    UCB0CTLW0 |= (UCTR | UCTXSTT);               /* I2C start with TX bit set */
 }
 
 /* Interrupt vectors ---------------------------------------------------------*/
 
-#define I2C_BLOCKING 1
 
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=USCI_B0_VECTOR
@@ -248,65 +270,82 @@ void USCIB0_ISR(void)
 {
     QK_ISR_ENTRY();    /* inform QK about entering the ISR */
 
-#if I2C_BLOCKING    // This is a blocking version of the ISR
     uint8_t intState = 0;
     switch(__even_in_range(UCB0IV, USCI_I2C_UCBIT9IFG)) {
         case USCI_NONE:          break;         // Vector 0: No interrupts
         case USCI_I2C_UCALIFG: {    // Vector 2: ALIFG - Arbitration lost
+            i2cData.status = ERR_HW_BUSY;
             intState = 1;
             break;
         }
         case USCI_I2C_UCNACKIFG: {               // Vector 4: NACKIFG - got a NACK
-//            UCB0CTL1 |= UCTXSTT;                  // I2C stop condition
+            UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
 //            I2C_clearBuffers();
+            i2cData.status = ERR_HW_NACK;
             intState = 2;
             break;
         }
-        case USCI_I2C_UCSTTIFG: {   // Vector 6: STTIFG - Start detected (slave mode only)
-            intState = 3;
-            break;
-        }
-        case USCI_I2C_UCSTPIFG: {   // Vector 8: STPIFG - Stop detected
-            /* If we expect to receive after a stop, switch to receiver mode and
-             * start that process. */
-//            if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
-//                    (i2cData.bufferRx.pData)) {
-//                I2C_startRx(i2cData.bufferRx.maxLen);
-//            }
+        case USCI_I2C_UCSTPIFG: {               // Vector 8: STPIFG - Stop detected
+
+            intState = 4;
+            if (i2cData.bufferRx.pData && i2cData.bufferRx.len > 0) {
+                if (i2cData.callbacks[I2CEvtRxDone]) {
+                    i2cData.callbacks[I2CEvtRxDone](&i2cData);
+
+                    intState = 41;
+                }
+            }
+
+            if (i2cData.bufferTx.pData && i2cData.bufferTx.len > 0 &&
+                i2cData.bufferRx.pData && i2cData.bufferRx.len > 0) {
+                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+
+                    intState = 42;
+                }
+            }
 
             if (i2cData.callbacks[I2CEvtStopCondition]) {
-//                i2cData.callbacks[I2CEvtStopCondition]();
+                i2cData.callbacks[I2CEvtStopCondition](&i2cData);
+
+                intState = 43;
             }
-            intState = 4;
-            break;         // Vector 8: STPIFG - Stop detected
+            break;
         }
-        case USCI_I2C_UCRXIFG3:  break;         // Vector 10: RXIFG3
-        case USCI_I2C_UCTXIFG3:  break;         // Vector 12: TXIFG3
-        case USCI_I2C_UCRXIFG2:  break;         // Vector 14: RXIFG2
-        case USCI_I2C_UCTXIFG2:  break;         // Vector 16: TXIFG2
-        case USCI_I2C_UCRXIFG1:  break;         // Vector 18: RXIFG1
-        case USCI_I2C_UCTXIFG1:  break;         // Vector 20: TXIFG1
         case USCI_I2C_UCRXIFG0: {               // Vector 22: RXIFG0
             intState = 5;
-//            volatile uint8_t rxByte = UCB0RXBUF;
             /* Byte received */
             if (i2cData.bufferRx.len < i2cData.bufferRx.maxLen) {
-//                i2cData.bufferRx.pData[i2cData.bufferRx.len++] = rxByte;
 
+                /* if the transfer is not a single byte, issue a manual stop
+                 * before reading the last byte because msp430 has a stupid
+                 * I2C implementation - See at MSP430FR2433 ref manual,
+                 * section 24.3.5.2.2 - I2C Master Receiver Mode section */
                 if ((i2cData.bufferRx.maxLen != 1) &&
                     (i2cData.bufferRx.len+1) == i2cData.bufferRx.maxLen) {
                     UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
+                    intState = 51;
                 }
                 i2cData.bufferRx.pData[i2cData.bufferRx.len++] = UCB0RXBUF;
             }
 
-//            if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
-//                UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
-//            }
+            if (i2cData.bufferTx.pData && i2cData.bufferTx.len > 0 && i2cData.bufferTx.len == i2cData.bufferTx.maxLen &&
+                i2cData.bufferRx.pData && i2cData.bufferRx.len > 0 && i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
+                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
 
-            if (i2cData.callbacks[I2CEvtReadyToRx]) {
-//                i2cData.callbacks[I2CEvtReadyToRx]();
+                    intState = 52;
+                }
             }
+
+            if (i2cData.bufferRx.pData && i2cData.bufferRx.len > 0 && i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
+                if (i2cData.callbacks[I2CEvtRxDone]) {
+                    i2cData.callbacks[I2CEvtRxDone](&i2cData);
+
+                    intState = 53;
+                }
+            }
+
             break;
         }
         case USCI_I2C_UCTXIFG0: {                // Vector 24: TXIFG0
@@ -316,48 +355,36 @@ void USCIB0_ISR(void)
             if (i2cData.bufferTx.pData) {
                 if (i2cData.bufferTx.len < i2cData.bufferTx.maxLen) {
                     UCB0TXBUF = i2cData.bufferTx.pData[i2cData.bufferTx.len++];
+
+                    intState = 61;
                 } else {
-                    UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
+
 
                     if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
                             (i2cData.bufferRx.pData)) {
                         I2C_startRx(i2cData.bufferRx.maxLen);
+                        intState = 62;
+                    } else {
+                        UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
+                    }
+
+                    if (i2cData.callbacks[I2CEvtTxDone]) {
+                        i2cData.callbacks[I2CEvtTxDone](&i2cData);
+                        intState = 63;
                     }
                 }
-
-//                if (i2cData.bufferTx.len == i2cData.bufferTx.maxLen) {
-//                    UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
-//                }
-
-                if (i2cData.callbacks[I2CEvtReadyToTx]) {
-                    //                i2cData.callbacks[I2CEvtReadyToTx]();
-                }
             }
             break;
         }
-
-        case USCI_I2C_UCBCNTIFG: {      /* Vector 26: UCBCNT - byte count reached */
-
-            if (i2cData.bufferRx.pData) {
-                if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
-
-                }
-            }
-            if (i2cData.callbacks[I2CEvtByteCountReached]) {
-//                i2cData.callbacks[I2CEvtByteCountReached](ERR_NONE);
-            }
+        default:    /* Some Unhandled vector */
+            i2cData.status = ERR_HW_UNKNOWN_IRQ;
             intState = 7;
             break;
-        }
     }
 
-    QS_BEGIN(LOG_OUT, 0);       /* application-specific record begin */
-    QS_STR("intState");
+    QS_BEGIN(LOG, 0);       /* application-specific record begin */
     QS_U8(1, intState);
     QS_END();
-#else   // This is a non-blocking, event-driven version of the ISR
-
-#endif
 
     QK_ISR_EXIT();     /* inform QK about exiting the ISR */
 }

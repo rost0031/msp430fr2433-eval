@@ -10,6 +10,8 @@
 #include "ntag.h"
 #include "i2c.h"
 #include "stdint.h"
+#include "qpc.h"
+#include "bsp.h"
 
 /* Compile-time called macros ------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
@@ -49,9 +51,32 @@ static const uint16_t ntagRegisterMap[][3] =
         {0x10AD,          0,              1}      /**< I2CM STATUS Reg */
 };
 
-uint8_t dataTx[6] = {0x00};
-uint8_t dataRx[6] = {0x00};
+static uint8_t dataTx[6] = {0x00};
+static uint8_t dataRx[6] = {0x00};
+
+static NTAGRegNumber_t currentRegNumber = NTAG_MEM_OFFSET_TAG_STATUS_REG;
+static uint8_t         currentRegByteOffset = 0;
+
 /* Private function prototypes -----------------------------------------------*/
+
+/**
+ * @brief   Internal read register function
+ * This function allows specification of byte offset that is necessary for
+ * reading registers that are bigger than a single byte
+ * @return  None
+ */
+static void NTAG_readRegPrivate(
+        uint8_t offset                  /**< [in] byte offset in the register */
+);
+
+/**
+ * @brief   I2C exchange done callback
+ * @return  None
+ */
+static void NTAG_readRegByteDoneCallback(
+        I2CData_t* pI2CData                     /**< [in] pointer to I2C Data */
+);
+
 /* Public and Exported functions ---------------------------------------------*/
 
 
@@ -64,26 +89,19 @@ void NTAG_init(void)
 }
 
 /******************************************************************************/
+uint8_t NTAG_getRegSize(NTAGRegNumber_t regNum)
+{
+    return (ntagRegisterMap[regNum][2]);
+}
+
+/******************************************************************************/
 void NTAG_readReg(NTAGRegNumber_t regNum)
 {
-    dataTx[0] = (uint8_t)(ntagRegisterMap[regNum][0] >> 8);
-    dataTx[1] = (uint8_t)(ntagRegisterMap[regNum][0]);
-    dataTx[2] = (uint8_t)(ntagRegisterMap[regNum][1]);
+    /* Need to keep track of this over several function and callback interactions*/
+    currentRegNumber = regNum;
+    currentRegByteOffset = 0;
 
-
-
-//    I2C_transmitNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx);
-    I2C_exchangeNonBlocking(
-            NTAG_I2C_ADDRESS,
-            3,
-            dataTx,
-            1,
-            dataRx
-    );
-    /* We have to first do a write and then do a read (See READ_REGISTER cmd) */
-
-//    I2C_readBlocking( NTAG_I2C_ADDRESS, data, sizeof(data), rxData, sizeof(rxData));
-
+    NTAG_readRegPrivate(currentRegByteOffset);
 }
 
 /******************************************************************************/
@@ -97,6 +115,47 @@ void NTAG_writeReg(void)
 
 /* Private functions ---------------------------------------------------------*/
 
-/* Interrupt vectors ---------------------------------------------------------*/
+/******************************************************************************/
+static void NTAG_readRegPrivate(uint8_t offset)
+{
+    dataTx[0] = (uint8_t)(ntagRegisterMap[currentRegNumber][0] >> 8);
+    dataTx[1] = (uint8_t)(ntagRegisterMap[currentRegNumber][0]);
+    dataTx[2] = (uint8_t)(ntagRegisterMap[currentRegNumber][1] + offset);
 
+//    I2C_transmitNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx);
+
+    /* Register a callback for when the TX/RX exchange completes */
+    I2C_regCallback(I2CEvtExchangeDone, NTAG_readRegByteDoneCallback);
+
+    /* Initiate the TX/RX exchange */
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx, 1, &dataRx[0+offset]);
+
+    /* We have to first do a write and then do a read (See READ_REGISTER cmd) */
+
+//    I2C_readBlocking( NTAG_I2C_ADDRESS, data, sizeof(data), rxData, sizeof(rxData));
+
+}
+
+/* Callback functions --------------------------------------------------------*/
+
+/******************************************************************************/
+static void NTAG_readRegByteDoneCallback(I2CData_t* pI2CData)
+{
+    currentRegByteOffset++;                                /* Bump the offset */
+
+    /* Get size of the register size */
+    uint8_t regSize = NTAG_getRegSize(currentRegNumber);
+
+    /* If size of register is bigger than the current offset, call another*/
+    if (currentRegByteOffset < regSize) {
+        NTAG_readRegPrivate(currentRegByteOffset);
+    } else {
+        /* Finished */
+        QS_BEGIN(LOG, 0);       /* application-specific record begin */
+        QS_STR("Reg Data:");
+        QS_U8(1, dataRx[0]);
+        QS_U8(1, dataRx[1]);
+        QS_END();
+    }
+}
 

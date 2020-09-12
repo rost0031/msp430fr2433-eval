@@ -134,10 +134,10 @@ void BSP_init(void) {
         Q_ERROR();
     }
     QS_OBJ_DICTIONARY(&l_timerA_ISR);
-    QS_USR_DICTIONARY(DBG_OUT);
-    QS_USR_DICTIONARY(LOG_OUT);
-    QS_USR_DICTIONARY(WRN_OUT);
-    QS_USR_DICTIONARY(ERR_OUT);
+    QS_USR_DICTIONARY(DBG);
+    QS_USR_DICTIONARY(LOG);
+    QS_USR_DICTIONARY(WRN);
+    QS_USR_DICTIONARY(ERR);
 }
 
 /******************************************************************************/

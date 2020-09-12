@@ -75,6 +75,16 @@ static QState QpcNtag_active(QpcNtag * const me, QEvt const * const e);
  * machine is going next.
  */
 static QState QpcNtag_CheckTag(QpcNtag * const me, QEvt const * const e);
+
+/**
+ * @brief    First substate for demo purpose
+ *
+ * @param  [in,out] me: Pointer to the state machine
+ * @param  [in,out]  e:  Pointer to the event being processed.
+ * @return status: QState type that specifies where the state
+ * machine is going next.
+ */
+static QState QpcNtag_idle(QpcNtag * const me, QEvt const * const e);
 /*.$enddecl${AOs::QpcNtag} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 static QpcNtag l_qpcNtag;                      /**< single instance of the AO */
@@ -135,8 +145,9 @@ static QState QpcNtag_initial(QpcNtag * const me, QEvt const * const e) {
 
     QS_FUN_DICTIONARY(&QpcNtag_active);
     QS_FUN_DICTIONARY(&QpcNtag_CheckTag);
+    QS_FUN_DICTIONARY(&QpcNtag_idle);
 
-    return Q_TRAN(&QpcNtag_CheckTag);
+    return Q_TRAN(&QpcNtag_idle);
 }
 
 /**
@@ -186,6 +197,47 @@ static QState QpcNtag_CheckTag(QpcNtag * const me, QEvt const * const e) {
             break;
         }
         /*.${AOs::QpcNtag::SM::active::CheckTag::NTAG_REG_READ} */
+        case NTAG_REG_READ_SIG: {
+            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&QpcNtag_active);
+            break;
+        }
+    }
+    return status_;
+}
+
+/**
+ * @brief    First substate for demo purpose
+ *
+ * @param  [in,out] me: Pointer to the state machine
+ * @param  [in,out]  e:  Pointer to the event being processed.
+ * @return status: QState type that specifies where the state
+ * machine is going next.
+ */
+/*.${AOs::QpcNtag::SM::active::idle} .......................................*/
+static QState QpcNtag_idle(QpcNtag * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::QpcNtag::SM::active::idle} */
+        case Q_ENTRY_SIG: {
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+            NTAG_init();
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcNtag::SM::active::idle::TIMER} */
+        case TIMER_SIG: {
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcNtag::SM::active::idle::NTAG_REG_READ} */
         case NTAG_REG_READ_SIG: {
             NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 

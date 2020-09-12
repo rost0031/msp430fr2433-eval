@@ -20,10 +20,10 @@ extern "C" {
 
 #ifdef Q_SPY
 enum AppRecords { /* application-specific trace records */
-    DBG_OUT = QS_USER,
-    LOG_OUT,
-    WRN_OUT,
-    ERR_OUT,
+    DBG = QS_USER,
+    LOG,
+    WRN,
+    ERR,
 };
 #endif
 
