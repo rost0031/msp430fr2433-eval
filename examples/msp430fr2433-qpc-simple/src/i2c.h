@@ -37,13 +37,9 @@ extern "C" {
  * @brief   I2C simple state machine states
  */
 typedef enum {
-    I2CStateInReset    = 0,
-
-    I2CStateReady      = 1,
-    I2CStateTxInProg   = 2,
-    I2CStateTxDone     = 3,
-    I2CStateRxInProg   = 4,
-    I2CStateRxDone     = 5,
+    I2CStateNoReq      = 0x00,
+    I2CStateReq        = 0x01,
+    I2CStateDone       = 0x02,
 } I2CState_t;
 
 /**
@@ -73,11 +69,13 @@ typedef void (*I2CCallback_t) (
  * RAM as opposed to flash.
  */
 typedef struct I2CData {
-    I2CState_t     state;                              /**< Current I2C state */
     Error_t        status;                                /**< Current status */
     I2CCallback_t  callbacks[I2CEvtMax];              /**< Array of callbacks */
-    Buffer_t       bufferRx;                       /**< RX Buffer information */
     Buffer_t       bufferTx;                       /**< TX Buffer information */
+    Buffer_t       bufferRx;                       /**< RX Buffer information */
+    I2CState_t     txReqState;                      /**< Current I2C TX state */
+    I2CState_t     rxReqState;                      /**< Current I2C TX state */
+
 } I2CData_t;
 
 /* Exported constants --------------------------------------------------------*/
@@ -119,36 +117,36 @@ void I2C_stop(void);
  */
 void I2C_clearBuffers(void);
 
-/**
- * @brief   Initiate an I2C receive operation
- *
- * This function sets up a receive operation and activates all the necessary interrupts
- *
- * @return  None
- */
-void I2C_receiveNonBlocking(
-        uint8_t devAddr,        /**< [in] I2C device address */
-        uint8_t nBytes,         /**< [in] number of bytes to receive */
-        uint8_t* const pData    /**< [in] where to store received bytes */
-);
-
-/**
- * @brief   Initiate an I2C transmit operation
- *
- * This function sets up a transmit operation and activates all the necessary
- * interrupts to send nBytes from pData buffer.
- *
- * @note:   The caller is responsible for storage of stability of pData buffer
- * and should not release it until a callback for I2CEvtStopCondition or
- * I2CEvtByteCountReached event has been called.
- *
- * @return  None
- */
-void I2C_transmitNonBlocking(
-        uint8_t devAddr,        /**< [in] I2C device address */
-        uint8_t nBytes,         /**< [in] number of bytes to send */
-        uint8_t* const pData    /**< [in] data buffer of bytes to send */
-);
+///**
+// * @brief   Initiate an I2C receive operation
+// *
+// * This function sets up a receive operation and activates all the necessary interrupts
+// *
+// * @return  None
+// */
+//void I2C_receiveNonBlocking(
+//        uint8_t devAddr,        /**< [in] I2C device address */
+//        uint8_t nBytes,         /**< [in] number of bytes to receive */
+//        uint8_t* const pData    /**< [in] where to store received bytes */
+//);
+//
+///**
+// * @brief   Initiate an I2C transmit operation
+// *
+// * This function sets up a transmit operation and activates all the necessary
+// * interrupts to send nBytes from pData buffer.
+// *
+// * @note:   The caller is responsible for storage of stability of pData buffer
+// * and should not release it until a callback for I2CEvtStopCondition or
+// * I2CEvtByteCountReached event has been called.
+// *
+// * @return  None
+// */
+//void I2C_transmitNonBlocking(
+//        uint8_t devAddr,        /**< [in] I2C device address */
+//        uint8_t nBytes,         /**< [in] number of bytes to send */
+//        uint8_t* const pData    /**< [in] data buffer of bytes to send */
+//);
 
 /**
  * @brief   Register a callback for a given I2C event

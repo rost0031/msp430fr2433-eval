@@ -44,6 +44,9 @@ typedef struct {
 
     /** Which register to read */
     NTAGRegNumber_t reg;
+
+    /** Value of the register (if used for a response) */
+    uint16_t value;
 } NtagReadRegEvt;
 /*.$enddecl${Events::NtagReadRegEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 

@@ -37,11 +37,13 @@ Q_DEFINE_THIS_FILE
  * This data structure has to live in RAM since it will be modified at runtime.
  */
 static I2CData_t i2cData = {
-        .state = I2CStateInReset,
+//        .state = I2CStateInReset,
         .status = ERR_NONE,
         .callbacks = {0},
         .bufferRx = {0},
         .bufferTx = {0},
+        .txReqState = I2CStateNoReq,
+        .rxReqState = I2CStateNoReq,
 };
 
 /* Private function prototypes -----------------------------------------------*/
@@ -62,6 +64,20 @@ inline static void I2C_startTx(
         uint8_t bytes          /**< [in] number of bytes expected to transfer */
 );
 
+/**
+ * @brief   Issue an I2C stop condition
+ * @return  None
+ */
+inline static void I2C_issueStopCondition(void);
+
+/**
+ * @brief   Set I2C slave device address
+ * @return  None
+ */
+inline static void I2C_setSlaveAddress(
+        uint8_t addr                    /**< [in] slave device address to set */
+);
+
 /* Public and Exported functions ---------------------------------------------*/
 
 /******************************************************************************/
@@ -69,7 +85,7 @@ void I2C_init(void)
 {
 
     i2cData.status = ERR_NONE;
-    i2cData.state = I2CStateInReset;
+//    i2cData.state = I2CStateInReset;
     I2C_clearBuffers();
 
     /* Set up Pins for I2C
@@ -103,7 +119,7 @@ void I2C_init(void)
 /******************************************************************************/
 void I2C_start(void)
 {
-    i2cData.state = I2CStateReady;
+//    i2cData.state = I2CStateReady;
     UCB0CTL1 &= ~UCSWRST;                                   /* Clear SW reset */
 
     UCB0IE |= (
@@ -117,7 +133,7 @@ void I2C_start(void)
 /******************************************************************************/
 void I2C_stop(void)
 {
-    i2cData.state = I2CStateInReset;
+//    i2cData.state = I2CStateInReset;
     UCB0CTL1 |= UCSWRST;                                     /* Put into Reset */
     UCB0IE = 0;
 }
@@ -145,66 +161,85 @@ void I2C_exchangeNonBlocking(
 {
     i2cData.status = ERR_NONE;
 
-    i2cData.state = I2CStateTxInProg;
-
     /* TX buffer data */
     i2cData.bufferTx.maxLen = nBytesTx;
     i2cData.bufferTx.len = 0;
     i2cData.bufferTx.pData = pDataTx;
+
+    /* If transfer was requested, mark request and not done. Otherwise, mark no
+     * request but mark the transfer done. This makes the check in the ISR faster */
+    if (pDataTx && nBytesTx) {
+        i2cData.txReqState |= I2CStateReq;
+        i2cData.txReqState &= ~I2CStateDone;
+    } else {
+        i2cData.txReqState &= ~I2CStateReq;
+        i2cData.txReqState |= I2CStateDone;
+    }
 
     /* RX buffer data */
     i2cData.bufferRx.maxLen = nBytesRx;
     i2cData.bufferRx.len = 0;
     i2cData.bufferRx.pData = pDataRx;
 
-    /* Initialize slave address and interrupts */
-    UCB0I2CSA = devAddr;
+    if (pDataRx && nBytesRx) {
+        i2cData.rxReqState |= I2CStateReq;
+        i2cData.rxReqState &= ~I2CStateDone;
+    } else {
+        i2cData.rxReqState &= ~I2CStateReq;
+        i2cData.rxReqState |= I2CStateDone;
+    }
 
-    I2C_startTx(nBytesTx);
+    I2C_setSlaveAddress(devAddr);
+
+    if (i2cData.txReqState & I2CStateReq) {
+        I2C_startTx(i2cData.bufferTx.maxLen);
+    } else if (i2cData.rxReqState & I2CStateReq) {
+        I2C_startRx(i2cData.bufferRx.maxLen);
+    }
 }
-
-/******************************************************************************/
-void I2C_receiveNonBlocking(
-        uint8_t devAddr,
-        uint8_t nBytes,
-        uint8_t* const pData
-)
-{
-    i2cData.status = ERR_NONE;
-    i2cData.state = I2CStateRxInProg;
-
-    I2C_clearBuffers();
-
-    i2cData.bufferRx.maxLen = nBytes;
-    i2cData.bufferRx.len = 0;
-    i2cData.bufferRx.pData = pData;
-
-    /* Initialize slave address */
-    UCB0I2CSA = devAddr;
-
-    I2C_startRx(nBytes);
-}
-
-/******************************************************************************/
-void I2C_transmitNonBlocking(
-        uint8_t devAddr,
-        uint8_t nBytes,
-        uint8_t* const pData
-)
-{
-    i2cData.status = ERR_NONE;
-    i2cData.state = I2CStateTxInProg;
-
-    I2C_clearBuffers();
-
-    i2cData.bufferTx.maxLen = nBytes;
-    i2cData.bufferTx.len = 0;
-    i2cData.bufferTx.pData = pData;
-
-    UCB0I2CSA = devAddr;                          /* Set slave device address */
-
-    I2C_startTx(nBytes);
-}
+//
+///******************************************************************************/
+//void I2C_receiveNonBlocking(
+//        uint8_t devAddr,
+//        uint8_t nBytes,
+//        uint8_t* const pData
+//)
+//{
+//    i2cData.status = ERR_NONE;
+//    i2cData.state = I2CStateRxInProg;
+//
+//    I2C_clearBuffers();
+//
+//    i2cData.bufferRx.maxLen = nBytes;
+//    i2cData.bufferRx.len = 0;
+//    i2cData.bufferRx.pData = pData;
+//
+//    /* Initialize slave address */
+//    I2C_setSlaveAddress(devAddr);
+//
+//    I2C_startRx(nBytes);
+//}
+//
+///******************************************************************************/
+//void I2C_transmitNonBlocking(
+//        uint8_t devAddr,
+//        uint8_t nBytes,
+//        uint8_t* const pData
+//)
+//{
+//    i2cData.status = ERR_NONE;
+//    i2cData.state = I2CStateTxInProg;
+//
+//    I2C_clearBuffers();
+//
+//    i2cData.bufferTx.maxLen = nBytes;
+//    i2cData.bufferTx.len = 0;
+//    i2cData.bufferTx.pData = pData;
+//
+//    I2C_setSlaveAddress(devAddr);
+//
+//    I2C_startTx(nBytes);
+//}
 
 /******************************************************************************/
 void I2C_regCallback(I2CEvt_t i2cEvt, I2CCallback_t callback)
@@ -241,7 +276,7 @@ inline static void I2C_startRx(uint8_t bytes)
          * really no way around this. Can't listen for I2C START condition
          * interrupt in master mode. Seriously TI, WTF? */
         while((UCB0CTLW0 & UCTXSTT));
-        UCB0CTLW0 |= UCTXSTP;                          /* Send stop condition */
+        I2C_issueStopCondition();
     }
 }
 
@@ -255,6 +290,18 @@ inline static void I2C_startTx(uint8_t bytes)
     UCB0IE |= UCTXIE;                                  /* Enable TX interrupt */
 
     UCB0CTLW0 |= (UCTR | UCTXSTT);               /* I2C start with TX bit set */
+}
+
+/******************************************************************************/
+inline static void I2C_issueStopCondition(void)
+{
+    UCB0CTLW0 |= UCTXSTP;
+}
+
+/******************************************************************************/
+inline static void I2C_setSlaveAddress(uint8_t addr)
+{
+    UCB0I2CSA = addr;
 }
 
 /* Interrupt vectors ---------------------------------------------------------*/
@@ -321,14 +368,27 @@ void USCIB0_ISR(void)
                  * before reading the last byte because msp430 has a stupid
                  * I2C implementation - See at MSP430FR2433 ref manual,
                  * section 24.3.5.2.2 - I2C Master Receiver Mode section */
-                if ((i2cData.bufferRx.maxLen != 1) &&
+                if ((i2cData.bufferRx.maxLen > 1) &&
                     (i2cData.bufferRx.len+1) == i2cData.bufferRx.maxLen) {
-                    UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
+                    I2C_issueStopCondition();
                     intState = 51;
                 }
                 i2cData.bufferRx.pData[i2cData.bufferRx.len++] = UCB0RXBUF;
+
+                /* Check if we have any more bytes to receive */
+                if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
+                    i2cData.rxReqState |= I2CStateDone;
+                }
             }
 
+            if ((i2cData.txReqState & I2CStateDone) && (i2cData.rxReqState & I2CStateDone)) {
+                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+
+                    intState = 52;
+                }
+            }
+#if 0
             if (i2cData.bufferTx.pData && i2cData.bufferTx.len > 0 && i2cData.bufferTx.len == i2cData.bufferTx.maxLen &&
                 i2cData.bufferRx.pData && i2cData.bufferRx.len > 0 && i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
                 if (i2cData.callbacks[I2CEvtExchangeDone]) {
@@ -345,35 +405,47 @@ void USCIB0_ISR(void)
                     intState = 53;
                 }
             }
-
+#endif
             break;
         }
         case USCI_I2C_UCTXIFG0: {                // Vector 24: TXIFG0
 
             intState = 6;
             /* Ready to transmit */
-            if (i2cData.bufferTx.pData) {
+//            if (i2cData.txReqState & I2CStateReq) {
                 if (i2cData.bufferTx.len < i2cData.bufferTx.maxLen) {
                     UCB0TXBUF = i2cData.bufferTx.pData[i2cData.bufferTx.len++];
 
                     intState = 61;
                 } else {
+                    i2cData.txReqState |= I2CStateDone;
 
-
-                    if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
-                            (i2cData.bufferRx.pData)) {
+                    if (i2cData.rxReqState & I2CStateReq) {
                         I2C_startRx(i2cData.bufferRx.maxLen);
                         intState = 62;
                     } else {
-                        UCB0CTLW0 |= UCTXSTP;   /* Manually issue a stop */
+                        I2C_issueStopCondition();
+                        if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                            i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+                            intState = 63;
+                        }
                     }
 
-                    if (i2cData.callbacks[I2CEvtTxDone]) {
-                        i2cData.callbacks[I2CEvtTxDone](&i2cData);
-                        intState = 63;
-                    }
+//                    if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
+//                            (i2cData.bufferRx.pData)) {
+//                        I2C_startRx(i2cData.bufferRx.maxLen);
+//                        intState = 62;
+//                    } else {
+//                        I2C_issueStopCondition();
+//                    }
+
+
+//                    if (i2cData.callbacks[I2CEvtTxDone]) {
+//                        i2cData.callbacks[I2CEvtTxDone](&i2cData);
+//                        intState = 63;
+//                    }
                 }
-            }
+//            }
             break;
         }
         default:    /* Some Unhandled vector */

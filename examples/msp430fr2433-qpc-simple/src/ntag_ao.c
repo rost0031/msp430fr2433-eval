@@ -67,17 +67,20 @@ static QState QpcNtag_initial(QpcNtag * const me, QEvt const * const e);
 static QState QpcNtag_active(QpcNtag * const me, QEvt const * const e);
 
 /**
- * @brief    First substate for demo purpose
+ * @brief    Busy state
  *
  * @param  [in,out] me: Pointer to the state machine
  * @param  [in,out]  e:  Pointer to the event being processed.
  * @return status: QState type that specifies where the state
  * machine is going next.
  */
-static QState QpcNtag_CheckTag(QpcNtag * const me, QEvt const * const e);
+static QState QpcNtag_busy(QpcNtag * const me, QEvt const * const e);
+static QState QpcNtag_init(QpcNtag * const me, QEvt const * const e);
+static QState QpcNtag_state1(QpcNtag * const me, QEvt const * const e);
+static QState QpcNtag_state2(QpcNtag * const me, QEvt const * const e);
 
 /**
- * @brief    First substate for demo purpose
+ * @brief    Idle state
  *
  * @param  [in,out] me: Pointer to the state machine
  * @param  [in,out]  e:  Pointer to the event being processed.
@@ -134,17 +137,26 @@ static QState QpcNtag_initial(QpcNtag * const me, QEvt const * const e) {
     QS_FUN_DICTIONARY(&QHsm_top);
     QS_FUN_DICTIONARY(&QpcNtag_initial);
     QS_FUN_DICTIONARY(&QpcNtag_active);
-    QS_FUN_DICTIONARY(&QpcNtag_CheckTag);
+    QS_FUN_DICTIONARY(&QpcNtag_idle);
+    QS_FUN_DICTIONARY(&QpcNtag_busy);
+    QS_FUN_DICTIONARY(&QpcNtag_init);
 
     QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
 
     QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
+    QS_SIG_DICTIONARY(NTAG_REG_READ_DONE_SIG, (void *)0);
     QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
+    QS_SIG_DICTIONARY(NTAG_REG_WRITE_DONE_SIG, (void *)0);
     QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
+    QS_SIG_DICTIONARY(NTAG_MEM_READ_DONE_SIG, (void *)0);
     QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
+    QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);
 
     QS_FUN_DICTIONARY(&QpcNtag_active);
-    QS_FUN_DICTIONARY(&QpcNtag_CheckTag);
+    QS_FUN_DICTIONARY(&QpcNtag_busy);
+    QS_FUN_DICTIONARY(&QpcNtag_init);
+    QS_FUN_DICTIONARY(&QpcNtag_state1);
+    QS_FUN_DICTIONARY(&QpcNtag_state2);
     QS_FUN_DICTIONARY(&QpcNtag_idle);
 
     return Q_TRAN(&QpcNtag_idle);
@@ -171,34 +183,27 @@ static QState QpcNtag_active(QpcNtag * const me, QEvt const * const e) {
 }
 
 /**
- * @brief    First substate for demo purpose
+ * @brief    Busy state
  *
  * @param  [in,out] me: Pointer to the state machine
  * @param  [in,out]  e:  Pointer to the event being processed.
  * @return status: QState type that specifies where the state
  * machine is going next.
  */
-/*.${AOs::QpcNtag::SM::active::CheckTag} ...................................*/
-static QState QpcNtag_CheckTag(QpcNtag * const me, QEvt const * const e) {
+/*.${AOs::QpcNtag::SM::active::busy} .......................................*/
+static QState QpcNtag_busy(QpcNtag * const me, QEvt const * const e) {
     QState status_;
     switch (e->sig) {
-        /*.${AOs::QpcNtag::SM::active::CheckTag} */
+        /*.${AOs::QpcNtag::SM::active::busy} */
         case Q_ENTRY_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
-            NTAG_init();
+            //QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+            //NTAG_init();
             status_ = Q_HANDLED();
             break;
         }
-        /*.${AOs::QpcNtag::SM::active::CheckTag::TIMER} */
+        /*.${AOs::QpcNtag::SM::active::busy::TIMER} */
         case TIMER_SIG: {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
-
-            status_ = Q_HANDLED();
-            break;
-        }
-        /*.${AOs::QpcNtag::SM::active::CheckTag::NTAG_REG_READ} */
-        case NTAG_REG_READ_SIG: {
-            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 
             status_ = Q_HANDLED();
             break;
@@ -210,9 +215,74 @@ static QState QpcNtag_CheckTag(QpcNtag * const me, QEvt const * const e) {
     }
     return status_;
 }
+/*.${AOs::QpcNtag::SM::active::busy::init} .................................*/
+static QState QpcNtag_init(QpcNtag * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::QpcNtag::SM::active::busy::init} */
+        case Q_ENTRY_SIG: {
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
+            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+            NTAG_init();
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcNtag::SM::active::busy::init::TIMER} */
+        case TIMER_SIG: {
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&QpcNtag_busy);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::QpcNtag::SM::active::busy::state1} ...............................*/
+static QState QpcNtag_state1(QpcNtag * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::QpcNtag::SM::active::busy::state1} */
+        case Q_ENTRY_SIG: {
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
+            //NTAG_init();
+            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcNtag::SM::active::busy::state1::TIMER} */
+        case TIMER_SIG: {
+            status_ = Q_TRAN(&QpcNtag_state1);
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&QpcNtag_busy);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::QpcNtag::SM::active::busy::state2} ...............................*/
+static QState QpcNtag_state2(QpcNtag * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::QpcNtag::SM::active::busy::state2} */
+        case Q_ENTRY_SIG: {
+            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+            status_ = Q_HANDLED();
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&QpcNtag_busy);
+            break;
+        }
+    }
+    return status_;
+}
 
 /**
- * @brief    First substate for demo purpose
+ * @brief    Idle state
  *
  * @param  [in,out] me: Pointer to the state machine
  * @param  [in,out]  e:  Pointer to the event being processed.
@@ -225,14 +295,7 @@ static QState QpcNtag_idle(QpcNtag * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::QpcNtag::SM::active::idle} */
         case Q_ENTRY_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
-            NTAG_init();
-            status_ = Q_HANDLED();
-            break;
-        }
-        /*.${AOs::QpcNtag::SM::active::idle::TIMER} */
-        case TIMER_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
 
             status_ = Q_HANDLED();
             break;
@@ -242,6 +305,13 @@ static QState QpcNtag_idle(QpcNtag * const me, QEvt const * const e) {
             NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 
             status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcNtag::SM::active::idle::TIMER} */
+        case TIMER_SIG: {
+
+
+            status_ = Q_TRAN(&QpcNtag_init);
             break;
         }
         default: {

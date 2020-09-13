@@ -34,10 +34,6 @@ QS_FUN_DICTIONARY(&amp;QpcMain_active);
 QS_FUN_DICTIONARY(&amp;QpcMain_FirstSubState);
 QS_FUN_DICTIONARY(&amp;QpcMain_SecondSubState);
 
-QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
-QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
-QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
-QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
      <initial_glyph conn="3,3,5,0,6,7">
@@ -71,11 +67,7 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-      <entry>//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-
-/* Create and post event to do a NTAG register read command */
-QEvt* pEvt = Q_NEW(QEvt, NTAG_REG_READ_SIG);
-QACTIVE_POST(AO_QpcNtag, pEvt, AO_QpcMain);</entry>
+      <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
       <state_glyph node="34,10,23,10">
        <entry box="1,2,6,2"/>
       </state_glyph>
@@ -92,11 +84,11 @@ QACTIVE_POST(AO_QpcNtag, pEvt, AO_QpcMain);</entry>
  */</documentation>
       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );</entry>
       <!--${AOs::QpcMain::SM::active::FirstSubState::TIMER}-->
-      <tran trig="TIMER" target="../../1">
+      <tran trig="TIMER">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 
 P1OUT ^=  LED1;  /* toggle LED1 */</action>
-       <tran_glyph conn="6,16,3,3,28">
+       <tran_glyph conn="6,16,3,-1,18">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
@@ -178,9 +170,8 @@ $declare(AOs::QpcMain_ctor)
 #include &quot;main_ao.h&quot;
 #include &quot;bsp.h&quot;
 #include &quot;signals.h&quot;
-//#include &quot;ntag.h&quot;
-#include &quot;ntag_ao.h&quot;
-//#include &quot;i2c.h&quot;
+#include &quot;ntag.h&quot;
+#include &quot;i2c.h&quot;
 
 /* Compile-time called macros ------------------------------------------------*/
 //Q_DEFINE_THIS_FILE

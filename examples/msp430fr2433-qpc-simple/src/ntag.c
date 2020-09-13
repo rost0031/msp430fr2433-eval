@@ -9,7 +9,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "ntag.h"
 #include "i2c.h"
-#include "stdint.h"
+#include "stddef.h"
 #include "qpc.h"
 #include "bsp.h"
 
@@ -60,6 +60,14 @@ static uint8_t         currentRegByteOffset = 0;
 /* Private function prototypes -----------------------------------------------*/
 
 /**
+ * @brief   Get size of the register
+ * @return  uint8_t size of register in bytes
+ */
+static inline uint8_t NTAG_getRegSize(
+        NTAGRegNumber_t regNum                            /**< Which register */
+);
+
+/**
  * @brief   Internal read register function
  * This function allows specification of byte offset that is necessary for
  * reading registers that are bigger than a single byte
@@ -74,7 +82,7 @@ static void NTAG_readRegPrivate(
  * @return  None
  */
 static void NTAG_readRegByteDoneCallback(
-        I2CData_t* pI2CData                     /**< [in] pointer to I2C Data */
+        const I2CData_t* const pI2CData         /**< [in] pointer to I2C Data */
 );
 
 /* Public and Exported functions ---------------------------------------------*/
@@ -85,14 +93,12 @@ void NTAG_init(void)
 {
     /* Initialize tag by reading 2 bytes
      * (for some reason the example code does this?) */
+
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 0, NULL, 3, &dataRx[0]);
+
 //    I2C_receiveNonBlocking(NTAG_I2C_ADDRESS, 2, dataRx);
 }
 
-/******************************************************************************/
-uint8_t NTAG_getRegSize(NTAGRegNumber_t regNum)
-{
-    return (ntagRegisterMap[regNum][2]);
-}
 
 /******************************************************************************/
 void NTAG_readReg(NTAGRegNumber_t regNum)
@@ -114,6 +120,11 @@ void NTAG_writeReg(void)
 
 
 /* Private functions ---------------------------------------------------------*/
+/******************************************************************************/
+static inline uint8_t NTAG_getRegSize(NTAGRegNumber_t regNum)
+{
+    return (ntagRegisterMap[regNum][2]);
+}
 
 /******************************************************************************/
 static void NTAG_readRegPrivate(uint8_t offset)
@@ -128,7 +139,7 @@ static void NTAG_readRegPrivate(uint8_t offset)
     I2C_regCallback(I2CEvtExchangeDone, NTAG_readRegByteDoneCallback);
 
     /* Initiate the TX/RX exchange */
-    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx, 1, &dataRx[0+offset]);
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx, 2, &dataRx[0+offset]);
 
     /* We have to first do a write and then do a read (See READ_REGISTER cmd) */
 
@@ -139,7 +150,7 @@ static void NTAG_readRegPrivate(uint8_t offset)
 /* Callback functions --------------------------------------------------------*/
 
 /******************************************************************************/
-static void NTAG_readRegByteDoneCallback(I2CData_t* pI2CData)
+static void NTAG_readRegByteDoneCallback(const I2CData_t* const pI2CData)
 {
     currentRegByteOffset++;                                /* Bump the offset */
 
@@ -156,6 +167,8 @@ static void NTAG_readRegByteDoneCallback(I2CData_t* pI2CData)
         QS_U8(1, dataRx[0]);
         QS_U8(1, dataRx[1]);
         QS_END();
+
+        I2C_clrCallback(I2CEvtExchangeDone);            /* Clear the callback */
     }
 }
 

@@ -14,6 +14,10 @@ NOTE: Requries QP5.</documentation>
    <attribute name="reg" type="NTAGRegNumber_t" visibility="0x01" properties="0x00">
     <documentation>/** Which register to read */</documentation>
    </attribute>
+   <!--${Events::NtagReadRegEvt::value}-->
+   <attribute name="value" type="uint16_t" visibility="0x01" properties="0x00">
+    <documentation>/** Value of the register (if used for a response) */</documentation>
+   </attribute>
   </class>
  </package>
  <!--${AOs}-->
@@ -37,15 +41,21 @@ QS_OBJ_DICTIONARY(&amp;l_qpcNtag);
 QS_FUN_DICTIONARY(&amp;QHsm_top);
 QS_FUN_DICTIONARY(&amp;QpcNtag_initial);
 QS_FUN_DICTIONARY(&amp;QpcNtag_active);
-QS_FUN_DICTIONARY(&amp;QpcNtag_CheckTag);
+QS_FUN_DICTIONARY(&amp;QpcNtag_idle);
+QS_FUN_DICTIONARY(&amp;QpcNtag_busy);
+QS_FUN_DICTIONARY(&amp;QpcNtag_init);
 
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
 
 QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_REG_READ_DONE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_REG_WRITE_DONE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
-QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);</action>
-     <initial_glyph conn="3,3,5,0,7,7">
+QS_SIG_DICTIONARY(NTAG_MEM_READ_DONE_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
+QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
+     <initial_glyph conn="3,3,5,0,9,7">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -59,64 +69,93 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);</action>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-     <!--${AOs::QpcNtag::SM::active::CheckTag}-->
-     <state name="CheckTag">
+     <!--${AOs::QpcNtag::SM::active::busy}-->
+     <state name="busy">
       <documentation>/**
- * @brief    First substate for demo purpose
+ * @brief    Busy state
  *
  * @param  [in,out] me: Pointer to the state machine
  * @param  [in,out]  e:  Pointer to the event being processed.
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-      <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
-NTAG_init();</entry>
-      <!--${AOs::QpcNtag::SM::active::CheckTag::TIMER}-->
+      <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+//NTAG_init();</entry>
+      <!--${AOs::QpcNtag::SM::active::busy::TIMER}-->
       <tran trig="TIMER">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 </action>
-       <tran_glyph conn="46,16,3,-1,28">
+       <tran_glyph conn="43,48,3,-1,33">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
-      <!--${AOs::QpcNtag::SM::active::CheckTag::NTAG_REG_READ}-->
-      <tran trig="NTAG_REG_READ">
-       <action>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-</action>
-       <tran_glyph conn="46,26,3,-1,28">
-        <action box="0,-2,16,2"/>
-       </tran_glyph>
-      </tran>
-      <state_glyph node="46,10,48,43">
+      <!--${AOs::QpcNtag::SM::active::busy::init}-->
+      <state name="init">
+       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+NTAG_init();</entry>
+       <!--${AOs::QpcNtag::SM::active::busy::init::TIMER}-->
+       <tran trig="TIMER">
+        <tran_glyph conn="52,27,2,-1,3">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="47,16,23,11">
+        <entry box="1,2,6,2"/>
+       </state_glyph>
+      </state>
+      <!--${AOs::QpcNtag::SM::active::busy::state1}-->
+      <state name="state1">
+       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+//NTAG_init();
+NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
+       <!--${AOs::QpcNtag::SM::active::busy::state1::TIMER}-->
+       <tran trig="TIMER" target="..">
+        <tran_glyph conn="68,38,2,1,-3,2">
+         <action box="0,-2,10,2"/>
+        </tran_glyph>
+       </tran>
+       <state_glyph node="48,32,22,6">
+        <entry box="1,2,6,2"/>
+       </state_glyph>
+      </state>
+      <!--${AOs::QpcNtag::SM::active::busy::state2}-->
+      <state name="state2">
+       <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
+       <state_glyph node="48,40,22,6">
+        <entry box="1,2,6,2"/>
+       </state_glyph>
+      </state>
+      <state_glyph node="43,10,51,43">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
      <!--${AOs::QpcNtag::SM::active::idle}-->
      <state name="idle">
       <documentation>/**
- * @brief    First substate for demo purpose
+ * @brief    Idle state
  *
  * @param  [in,out] me: Pointer to the state machine
  * @param  [in,out]  e:  Pointer to the event being processed.
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-      <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
-NTAG_init();</entry>
-      <!--${AOs::QpcNtag::SM::active::idle::TIMER}-->
-      <tran trig="TIMER">
-       <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
-</action>
-       <tran_glyph conn="6,16,3,-1,28">
-        <action box="0,-2,7,2"/>
-       </tran_glyph>
-      </tran>
+      <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+</entry>
       <!--${AOs::QpcNtag::SM::active::idle::NTAG_REG_READ}-->
       <tran trig="NTAG_REG_READ">
        <action>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 </action>
-       <tran_glyph conn="6,26,3,-1,28">
+       <tran_glyph conn="6,38,3,-1,28">
         <action box="0,-2,16,2"/>
+       </tran_glyph>
+      </tran>
+      <!--${AOs::QpcNtag::SM::active::idle::TIMER}-->
+      <tran trig="TIMER" target="../../0/1">
+       <action>
+</action>
+       <tran_glyph conn="6,20,3,3,41">
+        <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="6,10,25,43">
@@ -126,75 +165,6 @@ NTAG_init();</entry>
      <state_glyph node="2,5,119,62"/>
     </state>
     <state_diagram size="133,104"/>
-   </statechart>
-  </class>
-  <!--${AOs::NtagCmd}-->
-  <class name="NtagCmd" superclass="qpc::QHsm">
-   <documentation>/** NTAG command orthogonal component */</documentation>
-   <!--${AOs::NtagCmd::byteOffset}-->
-   <attribute name="byteOffset" type="uint8_t" visibility="0x01" properties="0x00">
-    <documentation>/** Keep track of which byte offset we are reading/writing in a register that is larger than a single byte */</documentation>
-   </attribute>
-   <!--${AOs::NtagCmd::SM}-->
-   <statechart properties="0x01">
-    <!--${AOs::NtagCmd::SM::initial}-->
-    <initial target="../1">
-     <action>static uint8_t dict_sent;
-
-if (!dict_sent) {
-    QS_OBJ_DICTIONARY(&amp;l_mine1[0]); /* obj. dictionaries for Mine1 pool */
-    QS_OBJ_DICTIONARY(&amp;l_mine1[1]);
-    QS_OBJ_DICTIONARY(&amp;l_mine1[2]);
-    QS_OBJ_DICTIONARY(&amp;l_mine1[3]);
-    QS_OBJ_DICTIONARY(&amp;l_mine1[4]);
-
-    QS_FUN_DICTIONARY(&amp;Mine1_initial);/*fun. dictionaries for Mine1 HSM */
-    QS_FUN_DICTIONARY(&amp;Mine1_unused);
-    QS_FUN_DICTIONARY(&amp;Mine1_used);
-    QS_FUN_DICTIONARY(&amp;Mine1_planted);
-    QS_FUN_DICTIONARY(&amp;Mine1_exploding);
-
-    dict_sent = 1U;
-}
-/* local signals */
-QS_SIG_DICTIONARY(MINE_PLANT_SIG,    me);
-QS_SIG_DICTIONARY(MINE_DISABLED_SIG, me);
-QS_SIG_DICTIONARY(MINE_RECYCLE_SIG,  me);
-QS_SIG_DICTIONARY(SHIP_IMG_SIG,      me);
-QS_SIG_DICTIONARY(MISSILE_IMG_SIG,   me);
-
-(void)e; /* avoid the &quot;unreferenced parameter&quot; warning */</action>
-     <initial_glyph conn="2,2,5,0,3,2">
-      <action box="0,-2,11,2"/>
-     </initial_glyph>
-    </initial>
-    <!--${AOs::NtagCmd::SM::idle}-->
-    <state name="idle">
-     <entry>me-&gt;byteCounter = 0;</entry>
-     <!--${AOs::NtagCmd::SM::idle::NTAG_REG_READ}-->
-     <tran trig="NTAG_REG_READ" target="../../2/0">
-      <action>me-byteOffset = NTAG_getRegSize(((NtagReadRegEvt_t* const)e)-&gt;reg);</action>
-      <tran_glyph conn="2,13,3,3,34">
-       <action box="0,-2,14,2"/>
-      </tran_glyph>
-     </tran>
-     <state_glyph node="2,4,19,80">
-      <entry box="1,2,6,2"/>
-     </state_glyph>
-    </state>
-    <!--${AOs::NtagCmd::SM::Busy}-->
-    <state name="Busy">
-     <!--${AOs::NtagCmd::SM::Busy::RegReadByte}-->
-     <state name="RegReadByte">
-      <state_glyph node="36,8,23,14"/>
-     </state>
-     <!--${AOs::NtagCmd::SM::Busy::RegWriteByte}-->
-     <state name="RegWriteByte">
-      <state_glyph node="36,33,23,14"/>
-     </state>
-     <state_glyph node="34,4,45,80"/>
-    </state>
-    <state_diagram size="145,91"/>
    </statechart>
   </class>
   <!--${AOs::AO_QpcNtag}-->

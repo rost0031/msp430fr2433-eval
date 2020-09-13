@@ -29,9 +29,8 @@
 #include "main_ao.h"
 #include "bsp.h"
 #include "signals.h"
-//#include "ntag.h"
-#include "ntag_ao.h"
-//#include "i2c.h"
+#include "ntag.h"
+#include "i2c.h"
 
 /* Compile-time called macros ------------------------------------------------*/
 //Q_DEFINE_THIS_FILE
@@ -138,10 +137,6 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e) {
     QS_FUN_DICTIONARY(&QpcMain_FirstSubState);
     QS_FUN_DICTIONARY(&QpcMain_SecondSubState);
 
-    QS_SIG_DICTIONARY(NTAG_REG_READ_SIG, (void *)0);
-    QS_SIG_DICTIONARY(NTAG_REG_WRITE_SIG, (void *)0);
-    QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
-    QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
     QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
     QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
     return Q_TRAN(&QpcMain_FirstSubState);
@@ -187,11 +182,7 @@ static QState QpcMain_SecondSubState(QpcMain * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::QpcMain::SM::active::SecondSubState} */
         case Q_ENTRY_SIG: {
-            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-
-            /* Create and post event to do a NTAG register read command */
-            QEvt* pEvt = Q_NEW(QEvt, NTAG_REG_READ_SIG);
-            QACTIVE_POST(AO_QpcNtag, pEvt, AO_QpcMain);
+            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
             status_ = Q_HANDLED();
             break;
         }
@@ -226,7 +217,7 @@ static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e) {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
 
             P1OUT ^=  LED1;  /* toggle LED1 */
-            status_ = Q_TRAN(&QpcMain_SecondSubState);
+            status_ = Q_HANDLED();
             break;
         }
         default: {
