@@ -95,8 +95,8 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
 //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 NTAG_init();</entry>
        <!--${AOs::QpcNtag::SM::active::busy::init::TIMER}-->
-       <tran trig="TIMER">
-        <tran_glyph conn="52,27,2,-1,3">
+       <tran trig="TIMER" target="../../2">
+        <tran_glyph conn="52,27,2,0,5">
          <action box="0,-2,10,2"/>
         </tran_glyph>
        </tran>

@@ -229,7 +229,7 @@ static QState QpcNtag_init(QpcNtag * const me, QEvt const * const e) {
         }
         /*.${AOs::QpcNtag::SM::active::busy::init::TIMER} */
         case TIMER_SIG: {
-            status_ = Q_HANDLED();
+            status_ = Q_TRAN(&QpcNtag_state1);
             break;
         }
         default: {

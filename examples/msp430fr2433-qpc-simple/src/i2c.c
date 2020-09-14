@@ -103,9 +103,9 @@ void I2C_init(void)
                   UCSSEL__SMCLK );  /* Set clock source */
 
 
-    UCB0CTLW1 |= UCASTP_0;          /* Don't generate Auto-Stop since MSP430 is dumb*/
+//    UCB0CTLW1 |= UCASTP_0;          /* Don't generate Auto-Stop since MSP430 is dumb*/
 
-//    UCB0CTLW1 |= UCASTP_2;          /* Generate Auto-Stop */
+    UCB0CTLW1 |= UCASTP_2;          /* Generate Auto-Stop */
 
     /* Compute the clock divider that achieves the fastest speed less than or
      * equal to the desired speed.  The numerator is biased to favor a larger
@@ -124,7 +124,6 @@ void I2C_start(void)
 
     UCB0IE |= (
             UCBCNTIE |  /* Byte counter interrupt enable */
-            UCNACKIE |  /* NACK condition interrupt enable */
             UCALIE   |  /* Arbitration lost condition interrupt enable */
             UCSTPIE     /* Stop condition interrupt enable */
     );
@@ -134,7 +133,7 @@ void I2C_start(void)
 void I2C_stop(void)
 {
 //    i2cData.state = I2CStateInReset;
-    UCB0CTL1 |= UCSWRST;                                     /* Put into Reset */
+    UCB0CTL1 |= UCSWRST;                                    /* Put into Reset */
     UCB0IE = 0;
 }
 
@@ -189,7 +188,14 @@ void I2C_exchangeNonBlocking(
         i2cData.rxReqState |= I2CStateDone;
     }
 
+
+    UCB0CTL1 |= UCSWRST;                                     /* Put into Reset */
+    UCB0TBCNT = nBytesRx;
     I2C_setSlaveAddress(devAddr);
+    UCB0CTLW1 |= UCASTP_2;                               /* Generate Auto-Stop */
+
+    UCB0IE &= ~UCBCNTIE;                       /* Byte count interrupt disable */
+    UCB0CTL1 &= ~UCSWRST;                                   /* Clear SW reset */
 
     if (i2cData.txReqState & I2CStateReq) {
         I2C_startTx(i2cData.bufferTx.maxLen);
@@ -197,49 +203,6 @@ void I2C_exchangeNonBlocking(
         I2C_startRx(i2cData.bufferRx.maxLen);
     }
 }
-//
-///******************************************************************************/
-//void I2C_receiveNonBlocking(
-//        uint8_t devAddr,
-//        uint8_t nBytes,
-//        uint8_t* const pData
-//)
-//{
-//    i2cData.status = ERR_NONE;
-//    i2cData.state = I2CStateRxInProg;
-//
-//    I2C_clearBuffers();
-//
-//    i2cData.bufferRx.maxLen = nBytes;
-//    i2cData.bufferRx.len = 0;
-//    i2cData.bufferRx.pData = pData;
-//
-//    /* Initialize slave address */
-//    I2C_setSlaveAddress(devAddr);
-//
-//    I2C_startRx(nBytes);
-//}
-//
-///******************************************************************************/
-//void I2C_transmitNonBlocking(
-//        uint8_t devAddr,
-//        uint8_t nBytes,
-//        uint8_t* const pData
-//)
-//{
-//    i2cData.status = ERR_NONE;
-//    i2cData.state = I2CStateTxInProg;
-//
-//    I2C_clearBuffers();
-//
-//    i2cData.bufferTx.maxLen = nBytes;
-//    i2cData.bufferTx.len = 0;
-//    i2cData.bufferTx.pData = pData;
-//
-//    I2C_setSlaveAddress(devAddr);
-//
-//    I2C_startTx(nBytes);
-//}
 
 /******************************************************************************/
 void I2C_regCallback(I2CEvt_t i2cEvt, I2CCallback_t callback)
@@ -259,15 +222,29 @@ void I2C_clrCallback(I2CEvt_t i2cEvt)
 /******************************************************************************/
 inline static void I2C_startRx(uint8_t bytes)
 {
-    UCB0TBCNT = bytes;
+    UCB0CTLW0 |= UCSWRST; /* Put into Reset */
+    if (bytes > 1) {
+        UCB0TBCNT = bytes;
+        UCB0CTLW1 |= UCASTP_2;                          /* Generate Auto-Stop */
+    } else {
+        UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
+    }
+    UCB0CTL1 &= ~UCSWRST;                                   /* Clear SW reset */
+
 
     UCB0IFG &= ~(UCTXIFG | UCRXIFG);              /* Clear pending interrupts */
     UCB0IE &= ~UCTXIE;                                /* Disable TX interrupt */
     UCB0IE |= UCRXIE;                                  /* Enable RX interrupt */
+    UCB0IE |= (
+            UCBCNTIE |  /* Byte counter interrupt enable */
+            UCALIE   |  /* Arbitration lost condition interrupt enable */
+            UCSTPIE     /* Stop condition interrupt enable */
+    );
     UCB0CTLW0 &= ~UCTR;             /* Transmit/Receive bit clear for receive */
-    UCB0CTLW0 |= UCTXSTT;                    /* I2C start with TX bit cleared */
+    UCB0CTLW0 |= UCTXSTT;                                        /* I2C start */
 
 
+#if 1
     /* if the transfer is a single byte, issue a manual stop before reading the
      * only byte because msp430 has a stupid I2C implementation - See
      * MSP430FR2433 ref manual, section 24.3.5.2.2 - I2C Master Receiver Mode */
@@ -276,26 +253,35 @@ inline static void I2C_startRx(uint8_t bytes)
          * really no way around this. Can't listen for I2C START condition
          * interrupt in master mode. Seriously TI, WTF? */
         while((UCB0CTLW0 & UCTXSTT));
-        I2C_issueStopCondition();
+        UCB0CTLW0 |= UCTXSTP;
+//        I2C_issueStopCondition();
     }
+#endif
 }
 
 /******************************************************************************/
 inline static void I2C_startTx(uint8_t bytes)
 {
-    UCB0TBCNT = bytes;
+    UCB0CTLW0 |= UCSWRST;                                   /* Put into Reset */
+    UCB0TBCNT = bytes;                                    /* Set byte counter */
+    UCB0CTLW1 |= UCASTP_2;                              /* Generate Auto-Stop */
+    UCB0CTL1 &= ~UCSWRST;                                   /* Clear SW reset */
 
     UCB0IFG &= ~(UCTXIFG + UCRXIFG);              /* Clear pending interrupts */
     UCB0IE &= ~UCRXIE;                                /* Disable RX interrupt */
     UCB0IE |= UCTXIE;                                  /* Enable TX interrupt */
-
+    UCB0IE |= (
+            UCBCNTIE |  /* Byte counter interrupt enable */
+            UCALIE   |  /* Arbitration lost condition interrupt enable */
+            UCSTPIE     /* Stop condition interrupt enable */
+    );
     UCB0CTLW0 |= (UCTR | UCTXSTT);               /* I2C start with TX bit set */
 }
 
 /******************************************************************************/
 inline static void I2C_issueStopCondition(void)
 {
-    UCB0CTLW0 |= UCTXSTP;
+//    UCB0CTLW0 |= UCTXSTP;
 }
 
 /******************************************************************************/
@@ -335,59 +321,85 @@ void USCIB0_ISR(void)
         case USCI_I2C_UCSTPIFG: {               // Vector 8: STPIFG - Stop detected
 
             intState = 4;
-            if (i2cData.bufferRx.pData && i2cData.bufferRx.len > 0) {
-                if (i2cData.callbacks[I2CEvtRxDone]) {
-                    i2cData.callbacks[I2CEvtRxDone](&i2cData);
 
-                    intState = 41;
-                }
-            }
+//            if (i2cData.txReqState & I2CStateReq) {
+//                intState = 41;
+//                if (i2cData.txReqState & I2CStateDone) {
+//                    if ((i2cData.rxReqState & I2CStateReq) && !(i2cData.rxReqState & I2CStateDone)) {
+//                        intState = 42;
+//                        I2C_startRx(i2cData.bufferRx.maxLen);
+//                    } else {
+//                        if (i2cData.callbacks[I2CEvtExchangeDone]) {
+//                            i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+//                            intState = 43;
+//                        }
+//                    }
+//                }
+//
+//            } else if ((i2cData.rxReqState & I2CStateReq) && (i2cData.rxReqState & I2CStateDone)) {
+//                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+//                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+//                    intState = 44;
+//                }
+//            }
 
-            if (i2cData.bufferTx.pData && i2cData.bufferTx.len > 0 &&
-                i2cData.bufferRx.pData && i2cData.bufferRx.len > 0) {
-                if (i2cData.callbacks[I2CEvtExchangeDone]) {
-                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
 
-                    intState = 42;
-                }
-            }
-
-            if (i2cData.callbacks[I2CEvtStopCondition]) {
-                i2cData.callbacks[I2CEvtStopCondition](&i2cData);
-
-                intState = 43;
-            }
+//            if (i2cData.bufferRx.pData && i2cData.bufferRx.len > 0) {
+//                if (i2cData.callbacks[I2CEvtRxDone]) {
+//                    i2cData.callbacks[I2CEvtRxDone](&i2cData);
+//
+//                    intState = 41;
+//                }
+//            }
+//
+//            if (i2cData.bufferTx.pData && i2cData.bufferTx.len > 0 &&
+//                i2cData.bufferRx.pData && i2cData.bufferRx.len > 0) {
+//                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+//                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+//
+//                    intState = 42;
+//                }
+//            }
+//
+//            if (i2cData.callbacks[I2CEvtStopCondition]) {
+//                i2cData.callbacks[I2CEvtStopCondition](&i2cData);
+//
+//                intState = 43;
+//            }
             break;
         }
         case USCI_I2C_UCRXIFG0: {               // Vector 22: RXIFG0
             intState = 5;
+
+            /* if the transfer is not a single byte, issue a manual stop
+             * before reading the last byte because msp430 has a stupid
+             * I2C implementation - See at MSP430FR2433 ref manual,
+             * section 24.3.5.2.2 - I2C Master Receiver Mode section */
+//            if ((i2cData.bufferRx.maxLen > 1) &&
+//                (i2cData.bufferRx.len+1) == i2cData.bufferRx.maxLen) {
+//                I2C_issueStopCondition();
+//                intState = 51;
+//                UCB0IE &= ~UCRXIE;
+//            }
+
             /* Byte received */
             if (i2cData.bufferRx.len < i2cData.bufferRx.maxLen) {
-
-                /* if the transfer is not a single byte, issue a manual stop
-                 * before reading the last byte because msp430 has a stupid
-                 * I2C implementation - See at MSP430FR2433 ref manual,
-                 * section 24.3.5.2.2 - I2C Master Receiver Mode section */
-                if ((i2cData.bufferRx.maxLen > 1) &&
-                    (i2cData.bufferRx.len+1) == i2cData.bufferRx.maxLen) {
-                    I2C_issueStopCondition();
-                    intState = 51;
-                }
                 i2cData.bufferRx.pData[i2cData.bufferRx.len++] = UCB0RXBUF;
 
                 /* Check if we have any more bytes to receive */
                 if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
                     i2cData.rxReqState |= I2CStateDone;
+                    if (i2cData.bufferRx.maxLen == 1) {
+                        if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                            i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+
+                            intState = 51;
+                        }
+                    }
                 }
             }
 
-            if ((i2cData.txReqState & I2CStateDone) && (i2cData.rxReqState & I2CStateDone)) {
-                if (i2cData.callbacks[I2CEvtExchangeDone]) {
-                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
 
-                    intState = 52;
-                }
-            }
 #if 0
             if (i2cData.bufferTx.pData && i2cData.bufferTx.len > 0 && i2cData.bufferTx.len == i2cData.bufferTx.maxLen &&
                 i2cData.bufferRx.pData && i2cData.bufferRx.len > 0 && i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
@@ -416,41 +428,47 @@ void USCIB0_ISR(void)
                 if (i2cData.bufferTx.len < i2cData.bufferTx.maxLen) {
                     UCB0TXBUF = i2cData.bufferTx.pData[i2cData.bufferTx.len++];
 
+                    if (i2cData.bufferTx.len == i2cData.bufferTx.maxLen) {
+                        i2cData.txReqState |= I2CStateDone;
+                    }
                     intState = 61;
                 } else {
-                    i2cData.txReqState |= I2CStateDone;
-
-                    if (i2cData.rxReqState & I2CStateReq) {
-                        I2C_startRx(i2cData.bufferRx.maxLen);
-                        intState = 62;
-                    } else {
-                        I2C_issueStopCondition();
-                        if (i2cData.callbacks[I2CEvtExchangeDone]) {
-                            i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
-                            intState = 63;
-                        }
-                    }
-
-//                    if ((i2cData.bufferRx.len < i2cData.bufferRx.maxLen) &&
-//                            (i2cData.bufferRx.pData)) {
-//                        I2C_startRx(i2cData.bufferRx.maxLen);
-//                        intState = 62;
-//                    } else {
-//                        I2C_issueStopCondition();
-//                    }
 
 
-//                    if (i2cData.callbacks[I2CEvtTxDone]) {
-//                        i2cData.callbacks[I2CEvtTxDone](&i2cData);
-//                        intState = 63;
-//                    }
+
+
                 }
 //            }
             break;
         }
+        case USCI_I2C_UCBCNTIFG: {
+            intState = 7;
+            if (i2cData.txReqState & I2CStateReq) {
+                intState = 71;
+                if (i2cData.txReqState & I2CStateDone) {
+                    if ((i2cData.rxReqState & I2CStateReq) && !(i2cData.rxReqState & I2CStateDone)) {
+                        intState = 72;
+                        I2C_startRx(i2cData.bufferRx.maxLen);
+                    } else {
+                        if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                            i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+                            intState = 73;
+                        }
+                    }
+                }
+
+            } else if ((i2cData.rxReqState & I2CStateReq) && (i2cData.rxReqState & I2CStateDone)) {
+                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+                    intState = 74;
+                }
+            }
+
+            break;
+        }
         default:    /* Some Unhandled vector */
             i2cData.status = ERR_HW_UNKNOWN_IRQ;
-            intState = 7;
+            intState = 8;
             break;
     }
 

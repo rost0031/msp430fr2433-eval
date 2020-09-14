@@ -85,6 +85,8 @@ static void NTAG_readRegByteDoneCallback(
         const I2CData_t* const pI2CData         /**< [in] pointer to I2C Data */
 );
 
+static void NTAG_readDummyCallback(const I2CData_t* const pI2CData);
+
 /* Public and Exported functions ---------------------------------------------*/
 
 
@@ -94,7 +96,8 @@ void NTAG_init(void)
     /* Initialize tag by reading 2 bytes
      * (for some reason the example code does this?) */
 
-    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 0, NULL, 3, &dataRx[0]);
+    I2C_regCallback(I2CEvtExchangeDone, NTAG_readDummyCallback);
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 0, NULL, 2, &dataRx[0]);
 
 //    I2C_receiveNonBlocking(NTAG_I2C_ADDRESS, 2, dataRx);
 }
@@ -139,7 +142,7 @@ static void NTAG_readRegPrivate(uint8_t offset)
     I2C_regCallback(I2CEvtExchangeDone, NTAG_readRegByteDoneCallback);
 
     /* Initiate the TX/RX exchange */
-    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx, 2, &dataRx[0+offset]);
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 3, dataTx, 1, &dataRx[0+offset]);
 
     /* We have to first do a write and then do a read (See READ_REGISTER cmd) */
 
@@ -148,6 +151,21 @@ static void NTAG_readRegPrivate(uint8_t offset)
 }
 
 /* Callback functions --------------------------------------------------------*/
+
+
+/******************************************************************************/
+static void NTAG_readDummyCallback(const I2CData_t* const pI2CData)
+{
+    /* Finished */
+    QS_BEGIN(LOG, 0);       /* application-specific record begin */
+    QS_STR("Reg Data:");
+    for (uint8_t i = 0; i < pI2CData->bufferRx.maxLen; i++) {
+        QS_U8(1, dataRx[i]);
+    }
+    QS_END();
+
+    I2C_clrCallback(I2CEvtExchangeDone);            /* Clear the callback */
+}
 
 /******************************************************************************/
 static void NTAG_readRegByteDoneCallback(const I2CData_t* const pI2CData)
