@@ -50,6 +50,19 @@ static I2CData_t i2cData = {
 
 /**
  * @brief   Kick off a receive on I2C bus with pre-configured buffers
+ *
+ * This private function kicks off the actual I2C RX operation. This function
+ * will function in 1 of 2 modes depending on number of bytes being received.
+ * If receiving:
+ * - 1 byte: This is a special mode that disables auto-stop
+ *   generation because of MSP430's rather crude I2C implementation that prevents
+ *   stop generation being done on time with only 1 byte reception. In this case,
+ *   we have to manually generate a stop before even receiving the byte and on
+ *   top of that, we have to wait until we see the start condition on the bus.
+ *   This is ugly but it's the only way to get things to work for a single byte
+ *   reception.
+ * - More than 1 byte: this is the standard way that uses auto stop generation
+ *   that is able to set the stop condition at n-1 bytes and things work correctly.
  * @return  None
  */
 inline static void I2C_startRx(
@@ -58,6 +71,12 @@ inline static void I2C_startRx(
 
 /**
  * @brief   Kick off a transmit on I2C bus with pre-configured buffers
+ *
+ * This private function kicks off the actual I2C TX operation. Unlike the RX
+ * version of this function, it uses only the auto-stop generation mode since
+ * we never really have to send only 1 byte in our implementation. If this is
+ * needed, a similar method as the RX version should be employed.
+ *
  * @return  None
  */
 inline static void I2C_startTx(
@@ -138,9 +157,6 @@ void I2C_init(void)
                   UCMODE_3 |        /* I2C mode */
                   UCSYNC   |        /* Synchronous */
                   UCSSEL__SMCLK );  /* Set clock source */
-
-
-//    UCB0CTLW1 |= UCASTP_0;          /* Don't generate Auto-Stop since MSP430 is dumb*/
 
     UCB0CTLW1 |= UCASTP_2;          /* Generate Auto-Stop */
 
@@ -223,14 +239,7 @@ void I2C_exchangeNonBlocking(
         i2cData.rxReqState |= I2CStateDone;
     }
 
-
-    I2C_setReset();
-    I2C_setByteCounter(nBytesRx);
     I2C_setSlaveAddress(devAddr);
-    UCB0CTLW1 |= UCASTP_2;                               /* Generate Auto-Stop */
-
-    UCB0IE &= ~UCBCNTIE;                       /* Byte count interrupt disable */
-    I2C_clrReset();
 
     if (i2cData.txReqState & I2CStateReq) {
         I2C_startTx(i2cData.bufferTx.maxLen);
@@ -258,14 +267,13 @@ void I2C_clrCallback(I2CEvt_t i2cEvt)
 inline static void I2C_startRx(uint8_t bytes)
 {
     I2C_setReset();
-    if (bytes > 1) {
+    if (1 == bytes ) {
+        UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
+    } else {
         I2C_setByteCounter(bytes);
         UCB0CTLW1 |= UCASTP_2;                          /* Generate Auto-Stop */
-    } else {
-        UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
     }
     I2C_clrReset();
-
 
     UCB0IFG &= ~(UCTXIFG | UCRXIFG);              /* Clear pending interrupts */
     UCB0IE &= ~UCTXIE;                                /* Disable TX interrupt */
@@ -281,7 +289,7 @@ inline static void I2C_startRx(uint8_t bytes)
     /* if the transfer is a single byte, issue a manual stop before reading the
      * only byte because msp430 has a stupid I2C implementation - See
      * MSP430FR2433 ref manual, section 24.3.5.2.2 - I2C Master Receiver Mode */
-    if (bytes == 1) {
+    if (1 == bytes ) {
         /* Yeah, this is ugly since we are doing this in an ISR but there's
          * really no way around this. Can't listen for I2C START condition
          * interrupt in master mode. Seriously TI, WTF? */
@@ -367,9 +375,7 @@ void USCIB0_ISR(void)
             break;
         }
         case USCI_I2C_UCSTPIFG: {               // Vector 8: STPIFG - Stop detected
-
             intState = 4;
-
             break;
         }
         case USCI_I2C_UCRXIFG0: {               // Vector 22: RXIFG0
