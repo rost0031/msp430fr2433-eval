@@ -29,15 +29,11 @@ Q_DEFINE_THIS_FILE
 /* Private macros ------------------------------------------------------------*/
 /* Private variables and Local objects ---------------------------------------*/
 
-//Buffer_t i2cData.bufferRx = {0};
-//Buffer_t i2cData.bufferTx = {0};
-
 /**
- * @brief   UART dynamic data
+ * @brief   I2C dynamic data
  * This data structure has to live in RAM since it will be modified at runtime.
  */
 static I2CData_t i2cData = {
-//        .state = I2CStateInReset,
         .status = ERR_NONE,
         .callbacks = {0},
         .bufferRx = {0},

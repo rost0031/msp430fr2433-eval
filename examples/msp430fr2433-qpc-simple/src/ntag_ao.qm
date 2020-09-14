@@ -91,13 +91,13 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
       </tran>
       <!--${AOs::QpcNtag::SM::active::busy::init}-->
       <state name="init">
-       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+       <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
 //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 NTAG_init();</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::init::TIMER}-->
-       <tran trig="TIMER" target="../../2">
+       <!--${AOs::QpcNtag::SM::active::busy::init::NTAG_REG_READ_DONE}-->
+       <tran trig="NTAG_REG_READ_DONE" target="../../2">
         <tran_glyph conn="52,27,2,0,5">
-         <action box="0,-2,10,2"/>
+         <action box="0,-2,24,2"/>
         </tran_glyph>
        </tran>
        <state_glyph node="47,16,23,11">
@@ -108,7 +108,8 @@ NTAG_init();</entry>
       <state name="state1">
        <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
 //NTAG_init();
-NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
+//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_regReadDoneCallback);</entry>
        <!--${AOs::QpcNtag::SM::active::busy::state1::TIMER}-->
        <tran trig="TIMER" target="..">
         <tran_glyph conn="68,38,2,1,-3,2">
@@ -187,6 +188,22 @@ QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;QpcNtag_initial));
 
 QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
   </operation>
+  <!--${AOs::QpcNtag_regReadDoneCallback}-->
+  <operation name="QpcNtag_regReadDoneCallback" type="void" visibility="0x00" properties="0x00">
+   <documentation>/**
+ * @brief     Callback that the NTAG driver will call when finished
+ *
+ * @return None
+ */</documentation>
+   <!--${AOs::QpcNtag_regReadD~::pNtagData}-->
+   <parameter name="pNtagData" type="const NtagData_t* const"/>
+   <code>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+QS_STR(&quot;Reg Data:&quot;);
+for (uint8_t i = 0; i &lt; pNtagData-&gt;bufferRx.len; i++) {
+    QS_U8(1, pNtagData-&gt;bufferRx.pData[i]);
+}
+QS_END();</code>
+  </operation>
  </package>
  <!--${.}-->
  <directory name=".">
@@ -253,11 +270,14 @@ static QpcNtag l_qpcNtag;                      /**&lt; single instance of the AO
 
 QActive * const AO_QpcNtag = (QActive *)&amp;l_qpcNtag.super; /**&lt; Opaque pointer */
 
+$declare(AOs::QpcNtag_regReadDoneCallback)
+
 /* Public and Exported functions ---------------------------------------------*/
 $define(AOs::QpcNtag_ctor)
 
 /* Private functions ---------------------------------------------------------*/
-$define(AOs::QpcNtag)</text>
+$define(AOs::QpcNtag)
+$define(AOs::QpcNtag_regReadDoneCallback)</text>
   </file>
  </directory>
 </model>

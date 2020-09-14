@@ -94,6 +94,17 @@ static QpcNtag l_qpcNtag;                      /**< single instance of the AO */
 
 QActive * const AO_QpcNtag = (QActive *)&l_qpcNtag.super; /**< Opaque pointer */
 
+/*.$declare${AOs::QpcNtag_regReadDoneCallback} vvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+/**
+ * @brief     Callback that the NTAG driver will call when finished
+ *
+ * @return None
+ */
+/*.${AOs::QpcNtag_regReadDoneCallback} .....................................*/
+static void QpcNtag_regReadDoneCallback(const NtagData_t* const pNtagData);
+/*.$enddecl${AOs::QpcNtag_regReadDoneCallback} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+
 /* Public and Exported functions ---------------------------------------------*/
 /*.$skip${QP_VERSION} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 /*. Check for the minimum required QP version */
@@ -221,14 +232,14 @@ static QState QpcNtag_init(QpcNtag * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::QpcNtag::SM::active::busy::init} */
         case Q_ENTRY_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
+            //QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
             //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
             NTAG_init();
             status_ = Q_HANDLED();
             break;
         }
-        /*.${AOs::QpcNtag::SM::active::busy::init::TIMER} */
-        case TIMER_SIG: {
+        /*.${AOs::QpcNtag::SM::active::busy::init::NTAG_REG_READ_DONE} */
+        case NTAG_REG_READ_DONE_SIG: {
             status_ = Q_TRAN(&QpcNtag_state1);
             break;
         }
@@ -247,7 +258,8 @@ static QState QpcNtag_state1(QpcNtag * const me, QEvt const * const e) {
         case Q_ENTRY_SIG: {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
             //NTAG_init();
-            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+            NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_regReadDoneCallback);
             status_ = Q_HANDLED();
             break;
         }
@@ -322,3 +334,20 @@ static QState QpcNtag_idle(QpcNtag * const me, QEvt const * const e) {
     return status_;
 }
 /*.$enddef${AOs::QpcNtag} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*.$define${AOs::QpcNtag_regReadDoneCallback} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+/**
+ * @brief     Callback that the NTAG driver will call when finished
+ *
+ * @return None
+ */
+/*.${AOs::QpcNtag_regReadDoneCallback} .....................................*/
+static void QpcNtag_regReadDoneCallback(const NtagData_t* const pNtagData) {
+    QS_BEGIN(LOG, 0);       /* application-specific record begin */
+    QS_STR("Reg Data:");
+    for (uint8_t i = 0; i < pNtagData->bufferRx.len; i++) {
+        QS_U8(1, pNtagData->bufferRx.pData[i]);
+    }
+    QS_END();
+}
+/*.$enddef${AOs::QpcNtag_regReadDoneCallback} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/

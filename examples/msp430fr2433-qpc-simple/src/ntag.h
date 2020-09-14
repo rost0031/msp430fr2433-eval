@@ -16,6 +16,8 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "errors.h"
+#include "buffers.h"
+#include <stdbool.h>
 
 /* Exported defines ----------------------------------------------------------*/
 
@@ -38,7 +40,6 @@ extern "C" {
 /**
  * @}
  */
-
 
 /**
  * @brief   NTAG Error Codes
@@ -87,13 +88,58 @@ typedef enum {
  * @}
  */
 
+/**
+ * @brief   NTAG5 Status0 Register bit masks
+ * @{
+ */
+typedef enum {
+    NTAG_REG_STATUS0_NFC_FIELD_OK_MASK          = 0x01,
+    NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK         = 0x02,
+    NTAG_REG_STATUS0_PT_TRANSFER_DIR_MASK       = 0x04,
+    NTAG_REG_STATUS0_PT_SYNC_BLOCK_READ_MASK    = 0x08,
+    NTAG_REG_STATUS0_PT_SYNC_BLOCK_WRITE_MASK   = 0x10,
+    NTAG_REG_STATUS0_PT_SRAM_DATA_READY_MASK    = 0x20,
+    NTAG_REG_STATUS0_PT_EEPROM_WRITE_ERR_MASK   = 0x40,
+    NTAG_REG_STATUS0_PT_EEPROM_WRITE_BUSY_MASK  = 0x80,
+} NTAGRegStatus0Mask_t;
+/**
+ * @}
+ */
+
+/**
+ * @brief   NTAG events that can occur in the driver
+ */
+typedef enum {
+    NtagEvtStart = 0,                     /**< For indexing through the enums */
+    NtagEvtDone = NtagEvtStart,                 /**< NTAG initialization done */
+
+    NtagEvtRegReadDone,                      /**< NTAG register read finished */
+    NtagEvtRegWriteDone,                     /**< NTAG register read finished */
+    NtagEvtMax,                           /**< For indexing through the enums */
+} NtagEvt_t;
+
+struct NtagData;      /**< Forward declaration to prevent circular dependency */
 
 /**
  * @brief   NTAG callback function pointer type
  */
-typedef void (*NTAGCallback_t) (
-        Error_t                                 /**< [in] status of operation */
+typedef void (*NtagCallback_t) (
+        const struct NtagData* const              /**< [in] NTAG data pointer */
 );
+
+/**
+ * @brief   I2C data
+ * This structure holds any dynamic data for the I2C bus that should live in
+ * RAM as opposed to flash.
+ */
+typedef struct NtagData {
+    Error_t         status;                               /**< Current status */
+    NtagCallback_t  callbacks[NtagEvtMax];            /**< Array of callbacks */
+    Buffer_t        bufferTx;                      /**< TX Buffer information */
+    Buffer_t        bufferRx;                      /**< RX Buffer information */
+    bool            isBusy;         /**< Disallow new calls while we are busy */
+    NTAGRegNumber_t currRegNumber;   /**< which register we are currently r/w */
+} NtagData_t;
 
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/
