@@ -49,8 +49,6 @@ typedef enum {
     I2CEvtStart = 0,                      /**< For indexing through the enums */
     I2CEvtStopCondition = I2CEvtStart,          /**< I2C Stop condition event */
     I2CEvtExchangeDone,            /**< I2C TX and RX exchange finished event */
-    I2CEvtTxDone,                                  /**< I2C TX finished event */
-    I2CEvtRxDone,                                  /**< I2C RX finished event */
     I2CEvtMax,                            /**< For indexing through the enums */
 } I2CEvt_t;
 

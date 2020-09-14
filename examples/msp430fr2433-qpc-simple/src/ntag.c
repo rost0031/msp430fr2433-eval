@@ -97,7 +97,7 @@ void NTAG_init(void)
      * (for some reason the example code does this?) */
 
     I2C_regCallback(I2CEvtExchangeDone, NTAG_readDummyCallback);
-    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 0, NULL, 1, &dataRx[0]);
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS, 0, NULL, 3, &dataRx[0]);
 
 //    I2C_receiveNonBlocking(NTAG_I2C_ADDRESS, 2, dataRx);
 }

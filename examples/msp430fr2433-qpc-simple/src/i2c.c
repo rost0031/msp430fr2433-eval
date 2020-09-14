@@ -175,9 +175,9 @@ void I2C_start(void)
     I2C_clrReset();
 
     UCB0IE |= (
-            UCBCNTIE |  /* Byte counter interrupt enable */
-            UCALIE   |  /* Arbitration lost condition interrupt enable */
-            UCSTPIE     /* Stop condition interrupt enable */
+            UCBCNTIE  /* Byte counter interrupt enable */
+          | UCALIE    /* Arbitration lost condition interrupt enable */
+//          | UCSTPIE     /* Stop condition interrupt enable */
     );
 }
 
@@ -269,9 +269,11 @@ inline static void I2C_startRx(uint8_t bytes)
     I2C_setReset();
     if (1 == bytes ) {
         UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
+        UCB0IE &= ~UCBCNTIE;                /* Disable byte counter interrupt */
     } else {
         I2C_setByteCounter(bytes);
         UCB0CTLW1 |= UCASTP_2;                          /* Generate Auto-Stop */
+        UCB0IE |= UCBCNTIE;                  /* Enable byte counter interrupt */
     }
     I2C_clrReset();
 
@@ -279,9 +281,8 @@ inline static void I2C_startRx(uint8_t bytes)
     UCB0IE &= ~UCTXIE;                                /* Disable TX interrupt */
     UCB0IE |= UCRXIE;                                  /* Enable RX interrupt */
     UCB0IE |= (
-            UCBCNTIE |  /* Byte counter interrupt enable */
-            UCALIE   |  /* Arbitration lost condition interrupt enable */
-            UCSTPIE     /* Stop condition interrupt enable */
+            UCALIE    /* Arbitration lost condition interrupt enable */
+//          | UCSTPIE     /* Stop condition interrupt enable */
     );
     UCB0CTLW0 &= ~UCTR;             /* Transmit/Receive bit clear for receive */
     UCB0CTLW0 |= UCTXSTT;                                        /* I2C start */
@@ -310,9 +311,9 @@ inline static void I2C_startTx(uint8_t bytes)
     UCB0IE &= ~UCRXIE;                                /* Disable RX interrupt */
     UCB0IE |= UCTXIE;                                  /* Enable TX interrupt */
     UCB0IE |= (
-            UCBCNTIE |  /* Byte counter interrupt enable */
-            UCALIE   |  /* Arbitration lost condition interrupt enable */
-            UCSTPIE     /* Stop condition interrupt enable */
+            UCBCNTIE  /* Byte counter interrupt enable */
+          | UCALIE    /* Arbitration lost condition interrupt enable */
+//          | UCSTPIE     /* Stop condition interrupt enable */
     );
     UCB0CTLW0 |= (UCTR | UCTXSTT);               /* I2C start with TX bit set */
 }
@@ -365,6 +366,8 @@ void USCIB0_ISR(void)
         case USCI_NONE:          break;         // Vector 0: No interrupts
         case USCI_I2C_UCALIFG: {    // Vector 2: ALIFG - Arbitration lost
             i2cData.status = ERR_HW_BUSY;
+            /* Don't really know what to do here. We should never lose arbitration
+             * since we are the only master on the bus in this implementation. */
             intState = 1;
             break;
         }
@@ -385,19 +388,17 @@ void USCIB0_ISR(void)
             if (i2cData.bufferRx.len < i2cData.bufferRx.maxLen) {
                 i2cData.bufferRx.pData[i2cData.bufferRx.len++] = UCB0RXBUF;
 
-                /* Check if we have any more bytes to receive */
+                /* Check if we have any more bytes to receive. If not, call the
+                 * callback function if one exists */
                 if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
                     i2cData.rxReqState |= I2CStateDone;
-                    if (i2cData.bufferRx.maxLen == 1) {
-                        if (i2cData.callbacks[I2CEvtExchangeDone]) {
-                            i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+                    if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                        i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
 
-                            intState = 51;
-                        }
+                        intState = 51;
                     }
                 }
             }
-
             break;
         }
         case USCI_I2C_UCTXIFG0: {                // Vector 24: TXIFG0
@@ -415,12 +416,13 @@ void USCIB0_ISR(void)
             }
             break;
         }
-        case USCI_I2C_UCBCNTIFG: {
+        case USCI_I2C_UCBCNTIFG: {           /* Vector 26: Byte count reached */
             intState = 7;
             if (i2cData.txReqState & I2CStateReq) {
                 intState = 71;
                 if (i2cData.txReqState & I2CStateDone) {
-                    if ((i2cData.rxReqState & I2CStateReq) && !(i2cData.rxReqState & I2CStateDone)) {
+                    if ((i2cData.rxReqState & I2CStateReq) &&
+                       !(i2cData.rxReqState & I2CStateDone)) {
                         intState = 72;
                         I2C_startRx(i2cData.bufferRx.maxLen);
                     } else {
@@ -430,19 +432,12 @@ void USCIB0_ISR(void)
                         }
                     }
                 }
-
-            } else if ((i2cData.rxReqState & I2CStateReq) && (i2cData.rxReqState & I2CStateDone)) {
-                if (i2cData.callbacks[I2CEvtExchangeDone]) {
-                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
-                    intState = 74;
-                }
             }
-
             break;
         }
         default:    /* Some Unhandled vector */
             i2cData.status = ERR_HW_UNKNOWN_IRQ;
-            intState = 8;
+            intState = UCB0IV;
             break;
     }
 
