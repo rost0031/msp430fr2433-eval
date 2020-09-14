@@ -34,7 +34,7 @@ NOTE: Requries QP5.</documentation>
    <!--${AOs::QpcNtag::SM}-->
    <statechart properties="0x03">
     <!--${AOs::QpcNtag::SM::initial}-->
-    <initial target="../1/1">
+    <initial target="../1/0/1">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
 QS_OBJ_DICTIONARY(&amp;l_qpcNtag);
@@ -55,7 +55,7 @@ QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_READ_DONE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
-     <initial_glyph conn="3,3,5,0,9,7">
+     <initial_glyph conn="3,3,5,0,49,13">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>

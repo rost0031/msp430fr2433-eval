@@ -159,7 +159,7 @@ static QState QpcNtag_initial(QpcNtag * const me, QEvt const * const e) {
     QS_FUN_DICTIONARY(&QpcNtag_state2);
     QS_FUN_DICTIONARY(&QpcNtag_idle);
 
-    return Q_TRAN(&QpcNtag_idle);
+    return Q_TRAN(&QpcNtag_init);
 }
 
 /**
