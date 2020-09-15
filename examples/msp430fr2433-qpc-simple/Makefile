@@ -86,9 +86,12 @@ MFLAGS                = \
 						-ffreestanding \
                         -fno-common \
 						-fno-builtin \
-						-flto \
-						-fno-cse-follow-jumps \
 						$(WARNINGS)
+										
+										
+										
+#						-flto \
+#						-fno-cse-follow-jumps \
 											
 ASFLAGS               = -c $(MFLAGS)
 

@@ -216,7 +216,7 @@ static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e) {
         case TIMER_SIG: {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
 
-            P1OUT ^=  LED1;  /* toggle LED1 */
+            //P1OUT ^=  LED1;  /* toggle LED1 */
             status_ = Q_HANDLED();
             break;
         }

@@ -133,6 +133,79 @@ void NTAG_clrCallback(NtagEvt_t ntagEvt)
 }
 
 /******************************************************************************/
+static void NTAG_readRegSetupAddrCallback(const I2CData_t* const pI2CData)
+{
+    I2C_clrCallback(I2CEvtExchangeDone);            /* Clear the callback */
+    static const QEvt evt = {NTAG_REG_READ_ADDR_DONE_SIG, 0, 0};
+    QACTIVE_POST(AO_QpcNtag, &evt, 0);
+}
+
+/******************************************************************************/
+static void NTAG_readRegGetByteCallback(const I2CData_t* const pI2CData)
+{
+    I2C_clrCallback(I2CEvtExchangeDone);            /* Clear the callback */
+    static const QEvt evt = {NTAG_REG_READ_BYTE_DONE_SIG, 0, 0};
+    QACTIVE_POST(AO_QpcNtag, &evt, 0);
+    QS_BEGIN(LOG, 0);       /* application-specific record begin */
+    QS_STR("Byte:");
+    QS_U8(1, pI2CData->bufferRx.pData[0]);
+    QS_END();
+}
+
+/******************************************************************************/
+void NTAG_readRegSetupAddr(NTAGRegNumber_t regNum, uint8_t offset)
+{
+    /* Need to keep track of this over several function and callback interactions*/
+    ntagData.currRegNumber = regNum;
+
+    /* Set up a register read from our internal database of register settings.
+     * If needed, the callback will call this function again with a new offset
+     * after the first byte comes through. This offset will also be used to
+     * put the second value into the next spot in the RX data buffer */
+    ntagData.bufferTx.pData[0] = (uint8_t)(ntagRegisterMap[ntagData.currRegNumber][0] >> 8);
+    ntagData.bufferTx.pData[1] = (uint8_t)(ntagRegisterMap[ntagData.currRegNumber][0]);
+    ntagData.bufferTx.pData[2] = (uint8_t)(ntagRegisterMap[ntagData.currRegNumber][1] + offset);
+
+    ntagData.bufferTx.len = 0;
+    ntagData.bufferRx.len = 0;
+
+    /* Set number of bytes to send */
+    ntagData.bufferTx.maxLen = 3;
+
+    /* Set number of bytes to receive */
+    ntagData.bufferRx.maxLen = 0;
+
+    /* Register a callback for when the TX/RX exchange completes */
+    I2C_regCallback(I2CEvtExchangeDone, NTAG_readRegSetupAddrCallback);
+
+    /* Initiate the TX/RX exchange */
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS,
+            ntagData.bufferTx.maxLen, ntagData.bufferTx.pData,
+            0, NULL);
+}
+
+
+/******************************************************************************/
+void NTAG_readRegGetByte(NTAGRegNumber_t regNum)
+{
+    /* Need to keep track of this over several function and callback interactions*/
+    ntagData.currRegNumber = regNum;
+
+    ntagData.bufferRx.len = 0;
+
+    /* Set number of bytes to receive */
+    ntagData.bufferRx.maxLen = 1;
+
+    /* Register a callback for when the TX/RX exchange completes */
+    I2C_regCallback(I2CEvtExchangeDone, NTAG_readRegGetByteCallback);
+
+    /* Initiate the TX/RX exchange */
+    I2C_exchangeNonBlocking(NTAG_I2C_ADDRESS,
+            0, NULL,
+            ntagData.bufferRx.maxLen, ntagData.bufferRx.pData);
+}
+
+/******************************************************************************/
 void NTAG_readRegWithCallback(
         NTAGRegNumber_t regNum,
         NtagEvt_t ntagEvt,

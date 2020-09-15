@@ -31,6 +31,8 @@ typedef enum Signals {
 
     /** @{ Signals for NTAG commands */
     NTAG_REG_READ_SIG,
+    NTAG_REG_READ_ADDR_DONE_SIG,
+    NTAG_REG_READ_BYTE_DONE_SIG,
     NTAG_REG_READ_DONE_SIG,
     NTAG_REG_WRITE_SIG,
     NTAG_REG_WRITE_DONE_SIG,

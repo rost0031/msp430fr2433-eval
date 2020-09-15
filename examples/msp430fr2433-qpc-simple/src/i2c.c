@@ -262,7 +262,7 @@ void I2C_clrCallback(I2CEvt_t i2cEvt)
 /******************************************************************************/
 inline static void I2C_startRx(uint8_t bytes)
 {
-//    I2C_setReset();
+    I2C_setReset();
 //    if (1 == bytes ) {
 //        UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
 //        UCB0IE &= ~UCBCNTIE;                /* Disable byte counter interrupt */
@@ -271,7 +271,7 @@ inline static void I2C_startRx(uint8_t bytes)
         UCB0CTLW1 |= UCASTP_2;                          /* Generate Auto-Stop */
         UCB0IE |= UCBCNTIE;                  /* Enable byte counter interrupt */
 //    }
-//    I2C_clrReset();
+    I2C_clrReset();
 
     UCB0IFG &= ~(UCTXIFG | UCRXIFG);              /* Clear pending interrupts */
     UCB0IE &= ~UCTXIE;                                /* Disable TX interrupt */
@@ -392,7 +392,7 @@ void USCIB0_ISR(void)
                  * callback function if one exists */
                 if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
                     i2cData.rxReqState |= I2CStateDone;
-#if 0
+#if 1
                     if (i2cData.callbacks[I2CEvtExchangeDone]) {
                         i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
                         intState = 51;
@@ -450,11 +450,11 @@ void USCIB0_ISR(void)
             intState = UCB0IV;
             break;
     }
-
+#if 1
     QS_BEGIN(LOG, 0);       /* application-specific record begin */
     QS_U8(1, intState);
     QS_END();
-
+#endif
     QK_ISR_EXIT();     /* inform QK about exiting the ISR */
 }
 

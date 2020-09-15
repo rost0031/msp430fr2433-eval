@@ -87,7 +87,7 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
       <tran trig="TIMER">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 
-P1OUT ^=  LED1;  /* toggle LED1 */</action>
+//P1OUT ^=  LED1;  /* toggle LED1 */</action>
        <tran_glyph conn="6,16,3,-1,18">
         <action box="0,-2,7,2"/>
        </tran_glyph>
