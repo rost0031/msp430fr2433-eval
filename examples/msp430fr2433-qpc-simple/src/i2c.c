@@ -262,27 +262,28 @@ void I2C_clrCallback(I2CEvt_t i2cEvt)
 /******************************************************************************/
 inline static void I2C_startRx(uint8_t bytes)
 {
-    I2C_setReset();
-    if (1 == bytes ) {
-        UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
-        UCB0IE &= ~UCBCNTIE;                /* Disable byte counter interrupt */
-    } else {
+//    I2C_setReset();
+//    if (1 == bytes ) {
+//        UCB0CTLW1 |= UCASTP_0;                    /* Don't generate Auto-Stop */
+//        UCB0IE &= ~UCBCNTIE;                /* Disable byte counter interrupt */
+//    } else {
         I2C_setByteCounter(bytes);
         UCB0CTLW1 |= UCASTP_2;                          /* Generate Auto-Stop */
         UCB0IE |= UCBCNTIE;                  /* Enable byte counter interrupt */
-    }
-    I2C_clrReset();
+//    }
+//    I2C_clrReset();
 
     UCB0IFG &= ~(UCTXIFG | UCRXIFG);              /* Clear pending interrupts */
     UCB0IE &= ~UCTXIE;                                /* Disable TX interrupt */
     UCB0IE |= UCRXIE;                                  /* Enable RX interrupt */
     UCB0IE |= (
             UCALIE    /* Arbitration lost condition interrupt enable */
-//          | UCSTPIE     /* Stop condition interrupt enable */
+          | UCSTPIE     /* Stop condition interrupt enable */
     );
     UCB0CTLW0 &= ~UCTR;             /* Transmit/Receive bit clear for receive */
     UCB0CTLW0 |= UCTXSTT;                                        /* I2C start */
 
+#if 1
     /* if the transfer is a single byte, issue a manual stop before reading the
      * only byte because msp430 has a stupid I2C implementation - See
      * MSP430FR2433 ref manual, section 24.3.5.2.2 - I2C Master Receiver Mode */
@@ -293,6 +294,7 @@ inline static void I2C_startRx(uint8_t bytes)
         while((UCB0CTLW0 & UCTXSTT));
         I2C_issueStopCondition();
     }
+#endif
 }
 
 /******************************************************************************/
@@ -309,7 +311,7 @@ inline static void I2C_startTx(uint8_t bytes)
     UCB0IE |= (
             UCBCNTIE  /* Byte counter interrupt enable */
           | UCALIE    /* Arbitration lost condition interrupt enable */
-//          | UCSTPIE     /* Stop condition interrupt enable */
+          | UCSTPIE     /* Stop condition interrupt enable */
     );
     UCB0CTLW0 |= (UCTR | UCTXSTT);               /* I2C start with TX bit set */
 }
@@ -374,6 +376,8 @@ void USCIB0_ISR(void)
             break;
         }
         case USCI_I2C_UCSTPIFG: {               // Vector 8: STPIFG - Stop detected
+
+//            __delay_cycles(10);
             intState = 4;
             break;
         }
@@ -388,11 +392,12 @@ void USCIB0_ISR(void)
                  * callback function if one exists */
                 if (i2cData.bufferRx.len == i2cData.bufferRx.maxLen) {
                     i2cData.rxReqState |= I2CStateDone;
+#if 0
                     if (i2cData.callbacks[I2CEvtExchangeDone]) {
                         i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
-
                         intState = 51;
                     }
+#endif
                 }
             }
             break;
@@ -420,6 +425,7 @@ void USCIB0_ISR(void)
                     if ((i2cData.rxReqState & I2CStateReq) &&
                        !(i2cData.rxReqState & I2CStateDone)) {
                         intState = 72;
+//                        while((UCB0CTLW0 & UCTXSTP));
                         I2C_startRx(i2cData.bufferRx.maxLen);
                     } else {
                         if (i2cData.callbacks[I2CEvtExchangeDone]) {
@@ -429,6 +435,14 @@ void USCIB0_ISR(void)
                     }
                 }
             }
+
+            if ((i2cData.rxReqState & I2CStateReq) && (i2cData.rxReqState & I2CStateDone)) {
+                if (i2cData.callbacks[I2CEvtExchangeDone]) {
+                    i2cData.callbacks[I2CEvtExchangeDone](&i2cData);
+                    intState = 74;
+                }
+            }
+
             break;
         }
         default:    /* Some Unhandled vector */

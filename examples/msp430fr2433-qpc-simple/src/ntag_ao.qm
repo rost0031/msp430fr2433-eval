@@ -34,7 +34,7 @@ NOTE: Requries QP5.</documentation>
    <!--${AOs::QpcNtag::SM}-->
    <statechart properties="0x03">
     <!--${AOs::QpcNtag::SM::initial}-->
-    <initial target="../1/0/1">
+    <initial target="../1/1">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
 QS_OBJ_DICTIONARY(&amp;l_qpcNtag);
@@ -55,7 +55,7 @@ QS_SIG_DICTIONARY(NTAG_MEM_READ_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_READ_DONE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
-     <initial_glyph conn="3,3,5,0,49,13">
+     <initial_glyph conn="3,3,5,0,7,7">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -85,7 +85,7 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
       <tran trig="TIMER">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 </action>
-       <tran_glyph conn="43,48,3,-1,33">
+       <tran_glyph conn="43,76,3,-1,34">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
@@ -96,7 +96,7 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
 NTAG_init();</entry>
        <!--${AOs::QpcNtag::SM::active::busy::init::NTAG_REG_READ_DONE}-->
        <tran trig="NTAG_REG_READ_DONE" target="../../2">
-        <tran_glyph conn="52,27,2,0,5">
+        <tran_glyph conn="52,27,2,0,3">
          <action box="0,-2,24,2"/>
         </tran_glyph>
        </tran>
@@ -106,28 +106,63 @@ NTAG_init();</entry>
       </state>
       <!--${AOs::QpcNtag::SM::active::busy::state1}-->
       <state name="state1">
-       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+       <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
 //NTAG_init();
 //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
 NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_regReadDoneCallback);</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::state1::TIMER}-->
-       <tran trig="TIMER" target="..">
-        <tran_glyph conn="68,38,2,1,-3,2">
-         <action box="0,-2,10,2"/>
+       <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DONE}-->
+       <tran trig="NTAG_REG_READ_DONE">
+        <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+QS_STR(&quot;Reg Data:&quot;);
+QS_U8(1, ((NtagReadRegEvt const *) e)-&gt;reg);
+QS_U16(1, ((NtagReadRegEvt const *) e)-&gt;value );
+QS_END();
+
+</action>
+        <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[Valid?]}-->
+        <choice>
+         <guard brief="Valid?">((NtagReadRegEvt const *) e)-&gt;value != 0xFFFF</guard>
+         <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[VCC_OK?]}-->
+         <choice target="../../../../3">
+          <guard brief="VCC_OK?">((NtagReadRegEvt const *) e)-&gt;value &amp; NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK</guard>
+          <choice_glyph conn="51,48,4,0,6">
+           <action box="-8,1,10,2"/>
+          </choice_glyph>
+         </choice>
+         <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[else]}-->
+         <choice target="../../..">
+          <guard>else</guard>
+          <choice_glyph conn="51,48,5,1,21,-15,-2">
+           <action box="3,-2,10,2"/>
+          </choice_glyph>
+         </choice>
+         <choice_glyph conn="51,43,4,-1,5">
+          <action box="-6,1,7,2"/>
+         </choice_glyph>
+        </choice>
+        <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[else]}-->
+        <choice target="../..">
+         <guard>else</guard>
+         <choice_glyph conn="51,43,5,1,21,-10,-2">
+          <action box="7,-2,10,2"/>
+         </choice_glyph>
+        </choice>
+        <tran_glyph conn="51,36,2,-1,7">
+         <action box="0,1,21,2"/>
         </tran_glyph>
        </tran>
-       <state_glyph node="48,32,22,6">
+       <state_glyph node="48,30,22,6">
         <entry box="1,2,6,2"/>
        </state_glyph>
       </state>
       <!--${AOs::QpcNtag::SM::active::busy::state2}-->
       <state name="state2">
        <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
-       <state_glyph node="48,40,22,6">
+       <state_glyph node="48,54,22,6">
         <entry box="1,2,6,2"/>
        </state_glyph>
       </state>
-      <state_glyph node="43,10,51,43">
+      <state_glyph node="43,10,51,69">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
@@ -152,10 +187,8 @@ NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_re
        </tran_glyph>
       </tran>
       <!--${AOs::QpcNtag::SM::active::idle::TIMER}-->
-      <tran trig="TIMER" target="../../0/1">
-       <action>
-</action>
-       <tran_glyph conn="6,20,3,3,41">
+      <tran trig="TIMER" target="../../0/2">
+       <tran_glyph conn="6,20,3,3,40,13,2">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
@@ -163,7 +196,7 @@ NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_re
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="2,5,119,62"/>
+     <state_glyph node="2,5,119,79"/>
     </state>
     <state_diagram size="133,104"/>
    </statechart>
@@ -197,12 +230,20 @@ QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
  */</documentation>
    <!--${AOs::QpcNtag_regReadD~::pNtagData}-->
    <parameter name="pNtagData" type="const NtagData_t* const"/>
-   <code>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+   <code>NtagReadRegEvt* pEvt = Q_NEW(NtagReadRegEvt, NTAG_REG_READ_DONE_SIG);
+pEvt-&gt;reg = pNtagData-&gt;currRegNumber;
+pEvt-&gt;value = ((uint16_t)(pNtagData-&gt;bufferRx.pData[1] &lt;&lt; 8) |
+               (uint16_t)(pNtagData-&gt;bufferRx.pData[0]));
+QACTIVE_POST(AO_QpcNtag, (QEvt *)pEvt, AO_QpcNtag);
+
+#if 0
+QS_BEGIN(LOG, 0);       /* application-specific record begin */
 QS_STR(&quot;Reg Data:&quot;);
 for (uint8_t i = 0; i &lt; pNtagData-&gt;bufferRx.len; i++) {
     QS_U8(1, pNtagData-&gt;bufferRx.pData[i]);
 }
-QS_END();</code>
+QS_END();
+#endif</code>
   </operation>
  </package>
  <!--${.}-->

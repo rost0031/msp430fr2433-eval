@@ -21,6 +21,12 @@ Q_DEFINE_THIS_FILE
 /* Private define ------------------------------------------------------------*/
 /* Private macros ------------------------------------------------------------*/
 /* Private variables and Local objects ---------------------------------------*/
+
+static QEvt const *qpcMainQueueSto[3];
+static QEvt const *qpcNtagQueueSto[3];
+static QF_MPOOL_EL(QpcMainEvt) smlPoolSto[3];                     /* sml pool */
+static QF_MPOOL_EL(NtagReadRegEvt) medPoolSto[3];                 /* med pool */
+
 /* Private function prototypes -----------------------------------------------*/
 
 /* Public and Exported functions ---------------------------------------------*/
@@ -28,19 +34,16 @@ Q_DEFINE_THIS_FILE
 /******************************************************************************/
 int main(void)
 {
-    static QEvt const *qpcMainQueueSto[3];
-    static QEvt const *qpcNtagQueueSto[3];
-    static QF_MPOOL_EL(QpcMainEvt) smlPoolSto[3];               /* small pool */
 
     QpcMain_ctor();                         /* instantiate Main active object */
     QpcNtag_ctor();                         /* instantiate NTAG active object */
-
 
     QF_init();       /* initialize the framework and the underlying RT kernel */
     BSP_init();                       /* initialize the Board Support Package */
 
     /* initialize event pools... */
     QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));
+    QF_poolInit(medPoolSto, sizeof(medPoolSto), sizeof(medPoolSto[0]));
 
     /* start the active objects... */
     QACTIVE_START(AO_QpcMain,                                  /* AO to start */
