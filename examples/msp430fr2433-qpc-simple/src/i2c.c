@@ -283,7 +283,7 @@ inline static void I2C_startRx(uint8_t bytes)
     UCB0CTLW0 &= ~UCTR;             /* Transmit/Receive bit clear for receive */
     UCB0CTLW0 |= UCTXSTT;                                        /* I2C start */
 
-#if 1
+#if 0
     /* if the transfer is a single byte, issue a manual stop before reading the
      * only byte because msp430 has a stupid I2C implementation - See
      * MSP430FR2433 ref manual, section 24.3.5.2.2 - I2C Master Receiver Mode */
