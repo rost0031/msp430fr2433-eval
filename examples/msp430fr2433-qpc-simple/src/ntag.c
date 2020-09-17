@@ -121,9 +121,9 @@ void NTAG_getRegReadHdr(
         uint8_t* const pData
 )
 {
-    pData[0] = (uint8_t)(ntagRegisterMap[ntagData.currRegNumber][0] >> 8);
-    pData[1] = (uint8_t)(ntagRegisterMap[ntagData.currRegNumber][0]);
-    pData[2] = (uint8_t)(ntagRegisterMap[ntagData.currRegNumber][1] + offset);
+    pData[0] = (uint8_t)(ntagRegisterMap[regNum][0] >> 8);
+    pData[1] = (uint8_t)(ntagRegisterMap[regNum][0]);
+    pData[2] = (uint8_t)(ntagRegisterMap[regNum][1] + offset);
     *pBytesInData = 3;
 }
 

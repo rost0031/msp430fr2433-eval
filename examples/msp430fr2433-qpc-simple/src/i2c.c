@@ -359,7 +359,7 @@ void USCIB0_ISR(void)
             intState = UCB0IV;
             break;
     }
-#if 1
+#if 0
     QS_BEGIN(LOG, 0);       /* application-specific record begin */
     QS_U8(1, intState);
     QS_END();

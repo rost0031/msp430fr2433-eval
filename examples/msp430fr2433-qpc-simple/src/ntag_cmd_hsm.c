@@ -60,7 +60,7 @@ typedef struct {
      * we can avoid copying data to local storage from an event and instead
      * hold on to that event via this reference and manually garbage collect
      * it after we are finished. */
-    NtagReadRegEvt_t * pActiveRequest;
+    NtagReadRegEvt_t const * pActiveRequest;
 
     /** Internal data storage to use with I2C driver */
     uint8_t dataBufTx[6];
@@ -332,12 +332,22 @@ static QState NtagCmdHsm_readByte(NtagCmdHsm * const me, QEvt const * const e) {
             }
             /*.${AOs::NtagCmdHsm::SM::busy::readByte::I2C_RX::[else]} */
             else {
+                #if 0
                 /* Use the current active request event to send back data */
                 me->pActiveRequest->value = (uint16_t)me->dataBufRx[0];
                 if (me->regSize == 2) {
                     me->pActiveRequest->value |= (uint16_t)(me->dataBufRx[1] << 8);
                 }
                 QACTIVE_POST(AO_Ntag, (QEvt *)(me->pActiveRequest), AO_Ntag);
+                #endif
+
+                NtagReadRegEvt_t *pEvt = Q_NEW(NtagReadRegEvt_t, NTAG_REG_READ_DONE_SIG);
+                pEvt->reg = me->pActiveRequest->reg;
+                pEvt->value = (uint16_t)me->dataBufRx[0];
+                if (me->regSize == 2) {
+                    pEvt->value |= (uint16_t)(me->dataBufRx[1] << 8);
+                }
+                QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
                 status_ = Q_TRAN(&NtagCmdHsm_idle);
             }
             break;

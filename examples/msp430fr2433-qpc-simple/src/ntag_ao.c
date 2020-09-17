@@ -52,10 +52,12 @@ typedef struct {
 
     /**< Main timer. */
     QTimeEvt timerMain;
-    uint8_t offset;
 
     /** I2C Command HSM pointer */
     QHsm * ntagCmdHsm;
+
+    /** Keep track of errors */
+    Error_t status;
 } NtagAO;
 
 /* protected: */
@@ -70,8 +72,6 @@ static QState NtagAO_initial(NtagAO * const me, QEvt const * const e);
  * machine is going next.
  */
 static QState NtagAO_busy(NtagAO * const me, QEvt const * const e);
-static QState NtagAO_state1(NtagAO * const me, QEvt const * const e);
-static QState NtagAO_state2(NtagAO * const me, QEvt const * const e);
 static QState NtagAO_init(NtagAO * const me, QEvt const * const e);
 
 /**
@@ -145,12 +145,10 @@ static QState NtagAO_initial(NtagAO * const me, QEvt const * const e) {
     QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);
 
     QS_FUN_DICTIONARY(&NtagAO_busy);
-    QS_FUN_DICTIONARY(&NtagAO_state1);
-    QS_FUN_DICTIONARY(&NtagAO_state2);
     QS_FUN_DICTIONARY(&NtagAO_init);
     QS_FUN_DICTIONARY(&NtagAO_idle);
 
-    return Q_TRAN(&NtagAO_idle);
+    return Q_TRAN(&NtagAO_init);
 }
 
 /**
@@ -167,13 +165,13 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::NtagAO::SM::busy} */
         case Q_ENTRY_SIG: {
-            //QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 10 ) );
             //NTAG_init();
             status_ = Q_HANDLED();
             break;
         }
-        /*.${AOs::NtagAO::SM::busy::NTAG_REG_READ} */
-        case NTAG_REG_READ_SIG: {
+        /*.${AOs::NtagAO::SM::busy::NTAG_REG_READ_DONE} */
+        case NTAG_REG_READ_DONE_SIG: {
             QS_BEGIN(LOG, 0);       /* application-specific record begin */
             QS_STR("Reg Data:");
             QS_U8(1, ((NtagReadRegEvt_t const *) e)->reg);
@@ -190,71 +188,14 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
             status_ = Q_HANDLED();
             break;
         }
+        /*.${AOs::NtagAO::SM::busy::TIMER} */
+        case TIMER_SIG: {
+            me->status = ERR_HW_TIMEOUT;
+            status_ = Q_TRAN(&NtagAO_idle);
+            break;
+        }
         default: {
             status_ = Q_SUPER(&QHsm_top);
-            break;
-        }
-    }
-    return status_;
-}
-/*.${AOs::NtagAO::SM::busy::state1} ........................................*/
-static QState NtagAO_state1(NtagAO * const me, QEvt const * const e) {
-    QState status_;
-    switch (e->sig) {
-        /*.${AOs::NtagAO::SM::busy::state1} */
-        case Q_ENTRY_SIG: {
-            //QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
-            //NTAG_init();
-            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-            //NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_regReadDoneCallback);
-            status_ = Q_HANDLED();
-            break;
-        }
-        /*.${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DONE} */
-        case NTAG_REG_READ_DONE_SIG: {
-            QS_BEGIN(LOG, 0);       /* application-specific record begin */
-            QS_STR("Reg Data:");
-            QS_U8(1, ((NtagReadRegEvt_t const *) e)->reg);
-            QS_U16(1, ((NtagReadRegEvt_t const *) e)->value );
-            QS_END();
-
-
-            /*.${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[Valid?]} */
-            if (((NtagReadRegEvt_t const *) e)->value != 0xFFFF) {
-                /*.${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[VCC_OK?]} */
-                if (((NtagReadRegEvt_t const *) e)->value & NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK) {
-                    status_ = Q_TRAN(&NtagAO_state2);
-                }
-                /*.${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[else]} */
-                else {
-                    status_ = Q_TRAN(&NtagAO_state1);
-                }
-            }
-            /*.${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[else]} */
-            else {
-                status_ = Q_TRAN(&NtagAO_state1);
-            }
-            break;
-        }
-        default: {
-            status_ = Q_SUPER(&NtagAO_busy);
-            break;
-        }
-    }
-    return status_;
-}
-/*.${AOs::NtagAO::SM::busy::state2} ........................................*/
-static QState NtagAO_state2(NtagAO * const me, QEvt const * const e) {
-    QState status_;
-    switch (e->sig) {
-        /*.${AOs::NtagAO::SM::busy::state2} */
-        case Q_ENTRY_SIG: {
-            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-            status_ = Q_HANDLED();
-            break;
-        }
-        default: {
-            status_ = Q_SUPER(&NtagAO_busy);
             break;
         }
     }
@@ -266,15 +207,30 @@ static QState NtagAO_init(NtagAO * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::NtagAO::SM::busy::init} */
         case Q_ENTRY_SIG: {
-            //QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
-            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-            //NTAG_init();
+            NtagReadRegEvt_t *pEvt = Q_NEW(NtagReadRegEvt_t, NTAG_REG_READ_SIG);
+            pEvt->reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
+            pEvt->value = 0xFFFF;
+            QHSM_DISPATCH(me->ntagCmdHsm, (QEvt *)pEvt);
             status_ = Q_HANDLED();
             break;
         }
         /*.${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DONE} */
         case NTAG_REG_READ_DONE_SIG: {
-            status_ = Q_TRAN(&NtagAO_state1);
+            QS_BEGIN(LOG, 0);       /* application-specific record begin */
+            QS_STR("Reg Data:");
+            QS_U8(1, ((NtagReadRegEvt_t const *) e)->reg);
+            QS_U32_HEX(1, ((NtagReadRegEvt_t const *) e)->value );
+            QS_END();
+
+
+            /*.${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DO~::[VCC_OK?]} */
+            if (((NtagReadRegEvt_t const *) e)->value & NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK) {
+                status_ = Q_TRAN(&NtagAO_idle);
+            }
+            /*.${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DO~::[else]} */
+            else {
+                status_ = Q_TRAN(&NtagAO_init);
+            }
             break;
         }
         default: {
@@ -299,8 +255,17 @@ static QState NtagAO_idle(NtagAO * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::NtagAO::SM::idle} */
         case Q_ENTRY_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
+            /* Handle error if one occurred. */
 
+            // TODO: do we want to post an event in case of error? - HR
+            if (ERR_NONE != me->status) {
+                QS_BEGIN(ERR, 0);       /* application-specific record begin */
+                QS_STR("NTAG error:");
+                QS_U32_HEX(2, me->status);
+                QS_END();
+
+                me->status = ERR_NONE;
+            }
             status_ = Q_HANDLED();
             break;
         }
@@ -309,27 +274,6 @@ static QState NtagAO_idle(NtagAO * const me, QEvt const * const e) {
             //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
             QHSM_DISPATCH(me->ntagCmdHsm, e);
             status_ = Q_TRAN(&NtagAO_busy);
-            break;
-        }
-        /*.${AOs::NtagAO::SM::idle::TIMER} */
-        case TIMER_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 100 ) );
-
-            me->offset = 0;
-            #if 0
-            QpcI2CEvt_t* pEvt = Q_NEW(QpcI2CEvt_t, I2C_TX_SIG);
-            pEvt->reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
-            NTAG_getRegReadHdr(pEvt->reg, me->offset, sizeof(pEvt->data),
-                &(pEvt->size), pEvt->data);
-            QACTIVE_POST(AO_QpcNtag, (QEvt *)pEvt, AO_QpcNtag);
-            #endif
-
-            NtagReadRegEvt_t *pEvt = Q_NEW(NtagReadRegEvt_t, NTAG_REG_READ_SIG);
-            pEvt->reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
-            pEvt->value = 0xFFFF;
-            QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
-
-            status_ = Q_HANDLED();
             break;
         }
         default: {
