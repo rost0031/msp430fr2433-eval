@@ -34,10 +34,10 @@
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 
-/*.$declare${Events::NtagReadRegEvt} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*.$declare${Events::NtagReadRegEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 /** @brief NTAG event */
-/*.${Events::NtagReadRegEvt} ...............................................*/
+/*.${Events::NtagReadRegEvt_t} .............................................*/
 typedef struct {
 /* protected: */
     QEvt super;
@@ -47,18 +47,18 @@ typedef struct {
 
     /** Value of the register (if used for a response) */
     uint16_t value;
-} NtagReadRegEvt;
-/*.$enddecl${Events::NtagReadRegEvt} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+} NtagReadRegEvt_t;
+/*.$enddecl${Events::NtagReadRegEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /* Exported constants --------------------------------------------------------*/
-/*.$declare${AOs::AO_QpcNtag} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*.$declare${AOs::AO_Ntag} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 /** "opaque" pointer to the Active Object */
-extern QActive * const AO_QpcNtag;
-/*.$enddecl${AOs::AO_QpcNtag} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+extern QActive * const AO_Ntag;
+/*.$enddecl${AOs::AO_Ntag} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /* Exported functions --------------------------------------------------------*/
-/*.$declare${AOs::QpcNtag_ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*.$declare${AOs::NtagAO_ctor} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 /**
  * @brief     C "constructor" for this "class".
@@ -68,9 +68,9 @@ extern QActive * const AO_QpcNtag;
  *
  * @return None
  */
-/*.${AOs::QpcNtag_ctor} ....................................................*/
-void QpcNtag_ctor(void);
-/*.$enddecl${AOs::QpcNtag_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*.${AOs::NtagAO_ctor} .....................................................*/
+void NtagAO_ctor(void);
+/*.$enddecl${AOs::NtagAO_ctor} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 
-#endif                                                         /* __MAIN_AO_H */
+#endif                                                         /* __NTAG_AO_H */

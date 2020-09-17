@@ -144,6 +144,14 @@ typedef struct NtagData {
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/
 
+/**
+ * @brief   Get size of the register
+ * @return  uint8_t size of register in bytes
+ */
+uint8_t NTAG_getRegSize(
+        NTAGRegNumber_t regNum                            /**< Which register */
+);
+
 #ifdef __cplusplus
 }
 #endif

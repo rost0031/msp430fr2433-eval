@@ -16,3 +16,4 @@ spy/
 .dpp
 .main_ao
 .ntag_ao
+.i2c_ao

@@ -1,20 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <model version="5.0.2" links="1">
- <documentation>Dining Philosopher Problem example
-
-NOTE: Requries QP5.</documentation>
  <!--${qpc}-->
  <framework name="qpc"/>
  <!--${Events}-->
  <package name="Events" stereotype="0x01">
-  <!--${Events::NtagReadRegEvt}-->
-  <class name="NtagReadRegEvt" superclass="qpc::QEvt">
+  <!--${Events::NtagReadRegEvt_t}-->
+  <class name="NtagReadRegEvt_t" superclass="qpc::QEvt">
    <documentation>/** @brief NTAG event */</documentation>
-   <!--${Events::NtagReadRegEvt::reg}-->
+   <!--${Events::NtagReadRegEvt_t::reg}-->
    <attribute name="reg" type="NTAGRegNumber_t" visibility="0x01" properties="0x00">
     <documentation>/** Which register to read */</documentation>
    </attribute>
-   <!--${Events::NtagReadRegEvt::value}-->
+   <!--${Events::NtagReadRegEvt_t::value}-->
    <attribute name="value" type="uint16_t" visibility="0x01" properties="0x00">
     <documentation>/** Value of the register (if used for a response) */</documentation>
    </attribute>
@@ -22,30 +19,31 @@ NOTE: Requries QP5.</documentation>
  </package>
  <!--${AOs}-->
  <package name="AOs" stereotype="0x02">
-  <!--${AOs::QpcNtag}-->
-  <class name="QpcNtag" superclass="qpc::QActive">
+  <!--${AOs::NtagAO}-->
+  <class name="NtagAO" superclass="qpc::QActive">
    <documentation>/**
  * @brief	NTAG &quot;class&quot;
  */</documentation>
-   <!--${AOs::QpcNtag::timerMain}-->
+   <!--${AOs::NtagAO::timerMain}-->
    <attribute name="timerMain" type="QTimeEvt" visibility="0x01" properties="0x00">
     <documentation>/**&lt; Main timer. */</documentation>
    </attribute>
-   <!--${AOs::QpcNtag::offset}-->
+   <!--${AOs::NtagAO::offset}-->
    <attribute name="offset" type="uint8_t" visibility="0x01" properties="0x00"/>
-   <!--${AOs::QpcNtag::SM}-->
+   <!--${AOs::NtagAO::ntagCmdHsm}-->
+   <attribute name="ntagCmdHsm" type="QHsm *" visibility="0x01" properties="0x00">
+    <documentation>/** I2C Command HSM pointer */</documentation>
+   </attribute>
+   <!--${AOs::NtagAO::SM}-->
    <statechart properties="0x03">
-    <!--${AOs::QpcNtag::SM::initial}-->
-    <initial target="../1/1">
+    <!--${AOs::NtagAO::SM::initial}-->
+    <initial target="../2">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
-QS_OBJ_DICTIONARY(&amp;l_qpcNtag);
+QHSM_INIT(me-&gt;ntagCmdHsm, (QEvt *)0);/*initial tran. for Mine1 */
+
+QS_OBJ_DICTIONARY(&amp;l_ntagAO);
 QS_FUN_DICTIONARY(&amp;QHsm_top);
-QS_FUN_DICTIONARY(&amp;QpcNtag_initial);
-QS_FUN_DICTIONARY(&amp;QpcNtag_active);
-QS_FUN_DICTIONARY(&amp;QpcNtag_idle);
-QS_FUN_DICTIONARY(&amp;QpcNtag_busy);
-QS_FUN_DICTIONARY(&amp;QpcNtag_init);
 
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
 
@@ -61,19 +59,9 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
-    <!--${AOs::QpcNtag::SM::active}-->
-    <state name="active">
+    <!--${AOs::NtagAO::SM::busy}-->
+    <state name="busy">
      <documentation>/**
- * @brief    Top-level state where everything happens
- *
- * @param  [in,out] me: Pointer to the state machine
- * @param  [in,out]  e:  Pointer to the event being processed.
- * @return status: QState type that specifies where the state
- * machine is going next.
- */</documentation>
-     <!--${AOs::QpcNtag::SM::active::busy}-->
-     <state name="busy">
-      <documentation>/**
  * @brief    Busy state
  *
  * @param  [in,out] me: Pointer to the state machine
@@ -81,182 +69,107 @@ QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);</action>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-      <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+     <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
 //NTAG_init();</entry>
-      <!--${AOs::QpcNtag::SM::active::busy::TIMER}-->
-      <tran trig="TIMER">
-       <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
+     <!--${AOs::NtagAO::SM::busy::NTAG_REG_READ}-->
+     <tran trig="NTAG_REG_READ" target="../../2">
+      <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+QS_STR(&quot;Reg Data:&quot;);
+QS_U8(1, ((NtagReadRegEvt_t const *) e)-&gt;reg);
+QS_U16(1, ((NtagReadRegEvt_t const *) e)-&gt;value );
+QS_END();
 </action>
-       <tran_glyph conn="41,76,3,-1,34">
-        <action box="0,-2,7,2"/>
-       </tran_glyph>
-      </tran>
-      <!--${AOs::QpcNtag::SM::active::busy::init}-->
-      <state name="init">
-       <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
-//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-NTAG_init();</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::init::NTAG_REG_READ_DONE}-->
-       <tran trig="NTAG_REG_READ_DONE" target="../../2">
-        <tran_glyph conn="50,27,2,0,3">
-         <action box="0,-2,24,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="45,16,23,11">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::state1}-->
-      <state name="state1">
-       <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+      <tran_glyph conn="48,42,3,3,-42">
+       <action box="-15,-2,16,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::NtagAO::SM::busy::I2C_TX, I2C_RX}-->
+     <tran trig="I2C_TX, I2C_RX">
+      <action brief="dispatchToHsm">QHSM_DISPATCH(me-&gt;ntagCmdHsm, e);</action>
+      <tran_glyph conn="48,79,3,-1,12">
+       <action box="0,-4,11,6"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::NtagAO::SM::busy::state1}-->
+     <state name="state1">
+      <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
 //NTAG_init();
 //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_regReadDoneCallback);</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DONE}-->
-       <tran trig="NTAG_REG_READ_DONE">
-        <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+//NTAG_readRegWithCallback(NTAG_MEM_OFFSET_TAG_STATUS_REG, NtagEvtDone, QpcNtag_regReadDoneCallback);</entry>
+      <!--${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DONE}-->
+      <tran trig="NTAG_REG_READ_DONE">
+       <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
 QS_STR(&quot;Reg Data:&quot;);
-QS_U8(1, ((NtagReadRegEvt const *) e)-&gt;reg);
-QS_U16(1, ((NtagReadRegEvt const *) e)-&gt;value );
+QS_U8(1, ((NtagReadRegEvt_t const *) e)-&gt;reg);
+QS_U16(1, ((NtagReadRegEvt_t const *) e)-&gt;value );
 QS_END();
 
 </action>
-        <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[Valid?]}-->
-        <choice>
-         <guard brief="Valid?">((NtagReadRegEvt const *) e)-&gt;value != 0xFFFF</guard>
-         <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[VCC_OK?]}-->
-         <choice target="../../../../3">
-          <guard brief="VCC_OK?">((NtagReadRegEvt const *) e)-&gt;value &amp; NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK</guard>
-          <choice_glyph conn="49,48,4,0,6">
-           <action box="-8,1,10,2"/>
-          </choice_glyph>
-         </choice>
-         <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[else]}-->
-         <choice target="../../..">
-          <guard>else</guard>
-          <choice_glyph conn="49,48,5,1,21,-15,-2">
-           <action box="3,-2,10,2"/>
-          </choice_glyph>
-         </choice>
-         <choice_glyph conn="49,43,4,-1,5">
-          <action box="-6,1,7,2"/>
+       <!--${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[Valid?]}-->
+       <choice>
+        <guard brief="Valid?">((NtagReadRegEvt_t const *) e)-&gt;value != 0xFFFF</guard>
+        <!--${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[VCC_OK?]}-->
+        <choice target="../../../../3">
+         <guard brief="VCC_OK?">((NtagReadRegEvt_t const *) e)-&gt;value &amp; NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK</guard>
+         <choice_glyph conn="56,48,4,0,6">
+          <action box="-8,1,10,2"/>
          </choice_glyph>
         </choice>
-        <!--${AOs::QpcNtag::SM::active::busy::state1::NTAG_REG_READ_DO~::[else]}-->
-        <choice target="../..">
+        <!--${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[Valid?]::[else]}-->
+        <choice target="../../..">
          <guard>else</guard>
-         <choice_glyph conn="49,43,5,1,21,-10,-2">
-          <action box="7,-2,10,2"/>
+         <choice_glyph conn="56,48,5,1,21,-15,-2">
+          <action box="3,-2,10,2"/>
          </choice_glyph>
         </choice>
-        <tran_glyph conn="49,36,2,-1,7">
-         <action box="0,1,21,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="46,30,22,6">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::state2}-->
-      <state name="state2">
-       <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
-       <state_glyph node="46,54,22,6">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::readRegByte}-->
-      <state name="readRegByte">
-       <entry>NTAG_readRegGetByte(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::readRegByte::NTAG_REG_READ_BYTE_DONE}-->
-       <tran trig="NTAG_REG_READ_BYTE_DONE">
-        <!--${AOs::QpcNtag::SM::active::busy::readRegByte::NTAG_REG_READ_BY~::[more?]}-->
-        <choice target="../../../5">
-         <guard brief="more?">me-&gt;offset == 0</guard>
-         <action>me-&gt;offset++;</action>
-         <choice_glyph conn="94,41,5,2,6,-14,-5,-4">
-          <action box="1,0,10,2"/>
-         </choice_glyph>
-        </choice>
-        <!--${AOs::QpcNtag::SM::active::busy::readRegByte::NTAG_REG_READ_BY~::[else]}-->
-        <choice target="../../../5">
-         <guard>else</guard>
-         <action>me-&gt;offset = 0;</action>
-         <choice_glyph conn="94,41,4,2,-16,-4,-2">
-          <action box="-5,2,10,2"/>
-         </choice_glyph>
-        </choice>
-        <tran_glyph conn="94,38,2,-1,3">
-         <action box="0,-2,28,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="76,32,20,6">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::regWriteAddr}-->
-      <state name="regWriteAddr">
-       <entry>NTAG_readRegSetupAddr(NTAG_MEM_OFFSET_TAG_STATUS_REG, me-&gt;offset);
-P1OUT |=  LED1;</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::regWriteAddr::NTAG_REG_READ_ADDR_DONE}-->
-       <tran trig="NTAG_REG_READ_ADDR_DONE" target="../../4">
-        <tran_glyph conn="87,23,2,0,9">
-         <action box="0,-2,28,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="76,17,20,6">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::wait}-->
-      <state name="wait">
-       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
-P1OUT &amp;=  ~LED1;</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::wait::TIMER}-->
-       <tran trig="TIMER" target="../../5">
-        <tran_glyph conn="76,51,3,1,29,-31,-9">
-         <action box="0,-2,7,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="76,47,20,6">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::wait1}-->
-      <state name="wait1">
-       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
-P1OUT |=  LED1;</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::wait1::TIMER}-->
-       <tran trig="TIMER" target="../../8">
-        <tran_glyph conn="76,63,3,0,29,1,-22,7">
-         <action box="0,-2,7,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="76,56,20,9">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <!--${AOs::QpcNtag::SM::active::busy::wait2}-->
-      <state name="wait2">
-       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
-P1OUT &amp;=  ~LED1;</entry>
-       <!--${AOs::QpcNtag::SM::active::busy::wait2::TIMER}-->
-       <tran trig="TIMER" target="../../7">
-        <tran_glyph conn="78,75,3,2,29,-8,-16,-2">
-         <action box="0,-2,7,2"/>
-        </tran_glyph>
-       </tran>
-       <state_glyph node="78,71,20,6">
-        <entry box="1,2,6,2"/>
-       </state_glyph>
-      </state>
-      <state_glyph node="41,10,68,72">
+        <choice_glyph conn="56,43,4,-1,5">
+         <action box="-6,1,7,2"/>
+        </choice_glyph>
+       </choice>
+       <!--${AOs::NtagAO::SM::busy::state1::NTAG_REG_READ_DO~::[else]}-->
+       <choice target="../..">
+        <guard>else</guard>
+        <choice_glyph conn="56,43,5,1,21,-10,-2">
+         <action box="7,-2,10,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="56,36,2,-1,7">
+        <action box="0,1,21,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="53,30,22,6">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <!--${AOs::QpcNtag::SM::active::idle}-->
-     <state name="idle">
-      <documentation>/**
+     <!--${AOs::NtagAO::SM::busy::state2}-->
+     <state name="state2">
+      <entry>//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
+      <state_glyph node="53,54,22,6">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <!--${AOs::NtagAO::SM::busy::init}-->
+     <state name="init">
+      <entry>//QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+//NTAG_init();</entry>
+      <!--${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DONE}-->
+      <tran trig="NTAG_REG_READ_DONE" target="../../2">
+       <tran_glyph conn="57,27,2,0,3">
+        <action box="0,-2,24,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="52,16,23,11">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="48,10,68,88">
+      <entry box="1,2,6,2"/>
+     </state_glyph>
+    </state>
+    <!--${AOs::NtagAO::SM::idle}-->
+    <state name="idle">
+     <documentation>/**
  * @brief    Idle state
  *
  * @param  [in,out] me: Pointer to the state machine
@@ -264,38 +177,240 @@ P1OUT &amp;=  ~LED1;</entry>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-      <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+     <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
 </entry>
-      <!--${AOs::QpcNtag::SM::active::idle::NTAG_REG_READ}-->
-      <tran trig="NTAG_REG_READ">
-       <action>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+     <!--${AOs::NtagAO::SM::idle::NTAG_REG_READ}-->
+     <tran trig="NTAG_REG_READ" target="../../1">
+      <action>//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
+QHSM_DISPATCH(me-&gt;ntagCmdHsm, e);</action>
+      <tran_glyph conn="6,38,3,3,42">
+       <action box="0,-2,16,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::NtagAO::SM::idle::TIMER}-->
+     <tran trig="TIMER">
+      <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 100 ) );
+
+me-&gt;offset = 0;
+#if 0
+QpcI2CEvt_t* pEvt = Q_NEW(QpcI2CEvt_t, I2C_TX_SIG);
+pEvt-&gt;reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
+NTAG_getRegReadHdr(pEvt-&gt;reg, me-&gt;offset, sizeof(pEvt-&gt;data),
+    &amp;(pEvt-&gt;size), pEvt-&gt;data);
+QACTIVE_POST(AO_QpcNtag, (QEvt *)pEvt, AO_QpcNtag);
+#endif
+
+NtagReadRegEvt_t *pEvt = Q_NEW(NtagReadRegEvt_t, NTAG_REG_READ_SIG);
+pEvt-&gt;reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
+pEvt-&gt;value = 0xFFFF;
+QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
 </action>
-       <tran_glyph conn="6,38,3,-1,28">
-        <action box="0,-2,16,2"/>
+      <tran_glyph conn="6,20,3,-1,23">
+       <action box="0,-2,7,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="6,10,25,88">
+      <entry box="1,2,6,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="157,104"/>
+   </statechart>
+  </class>
+  <!--${AOs::NtagCmdHsm}-->
+  <class name="NtagCmdHsm" superclass="qpc::QHsm">
+   <documentation>NTAG command orthogonal region. This allows stringing together multiple
+I2C commands that are necessary for each NTAG command.</documentation>
+   <!--${AOs::NtagCmdHsm::regOffset}-->
+   <attribute name="regOffset" type="uint8_t" visibility="0x02" properties="0x00">
+    <documentation>/** Offset within the register. This is necessary for registers that 
+ * are bigger than a single byte */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::regSize}-->
+   <attribute name="regSize" type="uint8_t" visibility="0x02" properties="0x00">
+    <documentation>/** Size of a register */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::pActiveRequest}-->
+   <attribute name="pActiveRequest" type="NtagReadRegEvt_t *" visibility="0x01" properties="0x00">
+    <documentation>/** Reference to an event currently being handled. This is necessary so
+ * we can avoid copying data to local storage from an event and instead
+ * hold on to that event via this reference and manually garbage collect
+ * it after we are finished. */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::dataBufTx[6]}-->
+   <attribute name="dataBufTx[6]" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** Internal data storage to use with I2C driver */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::dataLenTx}-->
+   <attribute name="dataLenTx" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** Number of bytes in dataBufTx */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::dataBufRx[6]}-->
+   <attribute name="dataBufRx[6]" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** Internal data storage to use with I2C driver */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::dataLenRx}-->
+   <attribute name="dataLenRx" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** Number of bytes in dataBufRx */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::status}-->
+   <attribute name="status" type="Error_t" visibility="0x01" properties="0x00">
+    <documentation>/** Keep track of status and/or errors that can occur */</documentation>
+   </attribute>
+   <!--${AOs::NtagCmdHsm::SM}-->
+   <statechart properties="0x03">
+    <!--${AOs::NtagCmdHsm::SM::initial}-->
+    <initial target="../1">
+     <action>(void)e; /* avoid the &quot;unreferenced parameter&quot; warning */
+
+QS_OBJ_DICTIONARY(&amp;l_ntagCmdHsm);</action>
+     <initial_glyph conn="2,2,5,1,31,4,-2">
+      <action box="0,-2,11,2"/>
+     </initial_glyph>
+    </initial>
+    <!--${AOs::NtagCmdHsm::SM::idle}-->
+    <state name="idle">
+     <entry>/* Always clear out register data upon entry */
+me-&gt;regSize   = 0;
+me-&gt;regOffset = 0;
+
+me-&gt;dataLenTx = 0;
+me-&gt;dataLenRx = 0;
+
+/* Always NULL out the current request upon entry */
+me-&gt;pActiveRequest = (NtagReadRegEvt_t *)0;
+
+/* Handle error if one occurred. */
+
+// TODO: do we want to post an event in case of error? - HR
+if (ERR_NONE != me-&gt;status) {
+    QS_BEGIN(ERR, 0);       /* application-specific record begin */
+    QS_STR(&quot;I2C error:&quot;);
+    QS_U32_HEX(1, me-&gt;status);
+    QS_END();
+
+    me-&gt;status = ERR_NONE;
+}</entry>
+     <!--${AOs::NtagCmdHsm::SM::idle::NTAG_REG_READ}-->
+     <tran trig="NTAG_REG_READ" target="../../2/0">
+      <action>/* Save the current event reference so the event doesn't go away */
+Q_NEW_REF(me-&gt;pActiveRequest, NtagReadRegEvt_t);
+
+/* Get register size and clear offset */
+me-&gt;regSize = NTAG_getRegSize(me-&gt;pActiveRequest-&gt;reg);
+me-&gt;regOffset = 0;</action>
+      <tran_glyph conn="2,18,3,3,43">
+       <action box="0,-2,15,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="2,4,29,52">
+      <entry box="1,2,6,2"/>
+     </state_glyph>
+    </state>
+    <!--${AOs::NtagCmdHsm::SM::busy}-->
+    <state name="busy">
+     <exit brief="...">/* Upon exit, ALWAYS delete the active event reference */
+Q_DELETE_REF(me-&gt;pActiveRequest);</exit>
+     <!--${AOs::NtagCmdHsm::SM::busy::writeAddress}-->
+     <state name="writeAddress">
+      <entry>#if 0
+QpcI2CEvt_t* pEvt = Q_NEW(QpcI2CEvt_t, I2C_TX_SIG);
+pEvt-&gt;reg = me-&gt;pActiveRequest-&gt;reg;
+NTAG_getRegReadHdr(pEvt-&gt;reg, me-&gt;offset, sizeof(pEvt-&gt;data),
+    &amp;(pEvt-&gt;size), pEvt-&gt;data);
+QACTIVE_POST(AO_I2C, (QEvt *)pEvt, AO_Ntag);
+#endif
+
+/* Fill out me-&gt;dataBuf and me-&gt;dataLen with data needed to write 
+ * address of the register to tag */
+NTAG_getRegReadHdr(
+    me-&gt;pActiveRequest-&gt;reg, 
+    me-&gt;regOffset, 
+    sizeof(me-&gt;dataBufTx),
+    &amp;(me-&gt;dataLenTx), 
+    me-&gt;dataBufTx
+);
+
+/* Register callback to call when the I2C TX completes */
+I2C_regCallback(I2C_txDoneCallback);
+
+/* Initiate a non-blocking I2C TX command */
+I2C_exchangeNonBlocking(
+    NTAG_I2C_ADDRESS, 
+    I2CCmdTx,
+    me-&gt;dataLenTx, 
+    me-&gt;dataBufTx
+);</entry>
+      <!--${AOs::NtagCmdHsm::SM::busy::writeAddress::I2C_TX}-->
+      <tran trig="I2C_TX" target="../../1">
+       <tran_glyph conn="45,22,3,0,7,6">
+        <action box="0,-2,10,2"/>
        </tran_glyph>
       </tran>
-      <!--${AOs::QpcNtag::SM::active::idle::TIMER}-->
-      <tran trig="TIMER" target="../../0/5">
-       <action>me-&gt;offset = 0;</action>
-       <tran_glyph conn="6,20,3,3,70">
-        <action box="0,-2,7,2"/>
-       </tran_glyph>
-      </tran>
-      <state_glyph node="6,10,25,43">
+      <state_glyph node="45,14,22,9">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <state_glyph node="2,5,119,79"/>
+     <!--${AOs::NtagCmdHsm::SM::busy::readByte}-->
+     <state name="readByte">
+      <entry>
+/* Register callback to call when the I2C RX completes */
+I2C_regCallback(I2C_rxDoneCallback);
+
+/* Initiate a non-blocking I2C RX command */
+I2C_exchangeNonBlocking(
+    NTAG_I2C_ADDRESS, 
+    I2CCmdRx,
+    1, 
+    &amp;me-&gt;dataBufRx[0 + me-&gt;regOffset]
+);</entry>
+      <!--${AOs::NtagCmdHsm::SM::busy::readByte::I2C_RX}-->
+      <tran trig="I2C_RX">
+       <action>me-&gt;regOffset++;</action>
+       <!--${AOs::NtagCmdHsm::SM::busy::readByte::I2C_RX::[More?]}-->
+       <choice target="../../../0">
+        <guard brief="More?">me-&gt;regOffset &lt; me-&gt;regSize</guard>
+        <choice_glyph conn="52,41,5,1,17,-20,-2">
+         <action box="1,0,10,2"/>
+        </choice_glyph>
+       </choice>
+       <!--${AOs::NtagCmdHsm::SM::busy::readByte::I2C_RX::[else]}-->
+       <choice target="../../../../1">
+        <guard>else</guard>
+        <action>/* Use the current active request event to send back data */
+me-&gt;pActiveRequest-&gt;value = (uint16_t)me-&gt;dataBufRx[0];
+if (me-&gt;regSize == 2) {
+    me-&gt;pActiveRequest-&gt;value |= (uint16_t)(me-&gt;dataBufRx[1] &lt;&lt; 8);
+}
+QACTIVE_POST(AO_Ntag, (QEvt *)(me-&gt;pActiveRequest), AO_Ntag);</action>
+        <choice_glyph conn="52,41,5,3,-50">
+         <action box="-6,-2,5,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="45,34,3,-1,7,7">
+        <action box="0,-2,10,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="45,28,22,8">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="38,4,58,52">
+      <exit box="1,2,5,2"/>
+     </state_glyph>
     </state>
-    <state_diagram size="133,104"/>
+    <state_diagram size="117,68"/>
    </statechart>
   </class>
-  <!--${AOs::AO_QpcNtag}-->
-  <attribute name="AO_QpcNtag" type="QActive * const" visibility="0x00" properties="0x00">
+  <!--${AOs::AO_Ntag}-->
+  <attribute name="AO_Ntag" type="QActive * const" visibility="0x00" properties="0x00">
    <documentation>/** &quot;opaque&quot; pointer to the Active Object */</documentation>
   </attribute>
-  <!--${AOs::QpcNtag_ctor}-->
-  <operation name="QpcNtag_ctor" type="void" visibility="0x00" properties="0x00">
+  <!--${AOs::HSM_NtagCmd}-->
+  <attribute name="HSM_NtagCmd" type="QHsm * const" visibility="0x00" properties="0x00">
+   <documentation>/** &quot;opaque&quot; pointer to the QHsm NTAG Command State machine */</documentation>
+  </attribute>
+  <!--${AOs::NtagAO_ctor}-->
+  <operation name="NtagAO_ctor" type="void" visibility="0x00" properties="0x00">
    <documentation>/**
  * @brief     C &quot;constructor&quot; for this &quot;class&quot;.
  *
@@ -304,35 +419,60 @@ P1OUT &amp;=  ~LED1;</entry>
  *
  * @return None
  */</documentation>
-   <code>QpcNtag *me = &amp;l_qpcNtag;
+   <code>NtagAO *me = &amp;l_ntagAO;
 
-QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;QpcNtag_initial));
-
+QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;NtagAO_initial));
+me-&gt;ntagCmdHsm = NtagCmdHsm_ctor();
 QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
   </operation>
-  <!--${AOs::QpcNtag_regReadDoneCallback}-->
-  <operation name="QpcNtag_regReadDoneCallback" type="void" visibility="0x00" properties="0x00">
+  <!--${AOs::NtagCmdHsm_ctor}-->
+  <operation name="NtagCmdHsm_ctor" type="QHsm *" visibility="0x00" properties="0x00">
    <documentation>/**
- * @brief     Callback that the NTAG driver will call when finished
+ * @brief C &quot;constructor&quot; for this HSM &quot;class&quot; that handles NTAG commands
  *
  * @return None
  */</documentation>
-   <!--${AOs::QpcNtag_regReadD~::pNtagData}-->
-   <parameter name="pNtagData" type="const NtagData_t* const"/>
-   <code>NtagReadRegEvt* pEvt = Q_NEW(NtagReadRegEvt, NTAG_REG_READ_DONE_SIG);
-pEvt-&gt;reg = pNtagData-&gt;currRegNumber;
-pEvt-&gt;value = ((uint16_t)(pNtagData-&gt;bufferRx.pData[1] &lt;&lt; 8) |
-               (uint16_t)(pNtagData-&gt;bufferRx.pData[0]));
-QACTIVE_POST(AO_QpcNtag, (QEvt *)pEvt, AO_QpcNtag);
+   <code>NtagCmdHsm *me;
+me = &amp;l_ntagCmdHsm;
+/* superclass' ctor */
+QHsm_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;NtagCmdHsm_initial));
+return (QHsm *)me;</code>
+  </operation>
+  <!--${AOs::I2C_txDoneCallback}-->
+  <operation name="I2C_txDoneCallback" type="void" visibility="0x00" properties="0x00">
+   <documentation>/**
+ * @brief     Callback for I2C TX being done
+ * @return None
+ */</documentation>
+   <!--${AOs::I2C_txDoneCallba~::pI2CData}-->
+   <parameter name="pI2CData" type="const I2CData_t* const"/>
+   <code>/* Get access to internal memory of the HSM structure */
+NtagCmdHsm *me;
+me = &amp;l_ntagCmdHsm;
 
-#if 1
-QS_BEGIN(LOG, 0);       /* application-specific record begin */
-QS_STR(&quot;Reg Data:&quot;);
-for (uint8_t i = 0; i &lt; pNtagData-&gt;bufferRx.len; i++) {
-    QS_U8(1, pNtagData-&gt;bufferRx.pData[i]);
-}
-QS_END();
-#endif</code>
+me-&gt;dataLenTx += pI2CData-&gt;buffer.len;
+me-&gt;status = pI2CData-&gt;status;
+
+static const QEvt evt = {I2C_TX_SIG, 0, 0};
+QACTIVE_POST(AO_Ntag, &amp;evt, AO_Ntag);</code>
+  </operation>
+  <!--${AOs::I2C_rxDoneCallback}-->
+  <operation name="I2C_rxDoneCallback" type="void" visibility="0x00" properties="0x00">
+   <documentation>/**
+ * @brief     Callback for I2C TX being done
+ * @return None
+ */</documentation>
+   <!--${AOs::I2C_rxDoneCallba~::pI2CData}-->
+   <parameter name="pI2CData" type="const I2CData_t* const"/>
+   <code>/* Get access to internal memory of the HSM structure */
+NtagCmdHsm *me;
+me = &amp;l_ntagCmdHsm;
+
+me-&gt;dataLenRx += pI2CData-&gt;buffer.len;
+me-&gt;status = pI2CData-&gt;status;
+
+static const QEvt evt = {I2C_RX_SIG, 0, 0};
+QACTIVE_POST(AO_Ntag, &amp;evt, AO_Ntag);</code>
   </operation>
  </package>
  <!--${.}-->
@@ -357,16 +497,16 @@ QS_END();
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 
-$declare(Events::NtagReadRegEvt)
+$declare(Events::NtagReadRegEvt_t)
 
 /* Exported constants --------------------------------------------------------*/
-$declare(AOs::AO_QpcNtag)
+$declare(AOs::AO_Ntag)
 
 /* Exported functions --------------------------------------------------------*/
-$declare(AOs::QpcNtag_ctor)
+$declare(AOs::NtagAO_ctor)
 
 
-#endif                                                         /* __MAIN_AO_H */
+#endif                                                         /* __NTAG_AO_H */
 </text>
   </file>
   <!--${.::ntag_ao.c}-->
@@ -382,10 +522,77 @@ $declare(AOs::QpcNtag_ctor)
 /* Includes ------------------------------------------------------------------*/
 #include &quot;qpc.h&quot;
 #include &quot;ntag_ao.h&quot;
+#include &quot;ntag_cmd_hsm.h&quot;
 #include &quot;bsp.h&quot;
 #include &quot;signals.h&quot;
 #include &quot;ntag.h&quot;
 #include &quot;i2c.h&quot;
+
+/* Compile-time called macros ------------------------------------------------*/
+Q_DEFINE_THIS_FILE
+
+/* Private typedefs ----------------------------------------------------------*/
+/* Private defines -----------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables, objects, and function prototypes -----------------------*/
+$declare(AOs::NtagAO)
+
+static NtagAO l_ntagAO;                        /**&lt; single instance of the AO */
+
+QActive * const AO_Ntag = (QActive *)&amp;l_ntagAO.super; /**&lt; Opaque pointer */
+
+/* Public and Exported functions ---------------------------------------------*/
+$define(AOs::NtagAO_ctor)
+
+/* Private functions ---------------------------------------------------------*/
+$define(AOs::NtagAO)</text>
+  </file>
+  <!--${.::ntag_cmd_hsm.h}-->
+  <file name="ntag_cmd_hsm.h">
+   <text>/**
+ * @file    ntag_cmd_ao.h
+ * @brief   NTAG CMD QPC HSM
+ *
+ * Copyright 2020, Harry Rostovtsev.
+ * All other rights reserved.
+ */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __NTAG_CMD_HSM_H
+#define __NTAG_CMD_HSM_H
+
+/* Includes ------------------------------------------------------------------*/
+#include &quot;ntag.h&quot;
+#include &quot;i2c.h&quot;
+/* Exported defines ----------------------------------------------------------*/
+/* Exported macros -----------------------------------------------------------*/
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+$declare(AOs::HSM_NtagCmd)
+
+/* Exported functions --------------------------------------------------------*/
+$declare(AOs::NtagCmdHsm_ctor)
+
+#endif                                                    /* __NTAG_CMD_HSM_H */
+</text>
+  </file>
+  <!--${.::ntag_cmd_hsm.c}-->
+  <file name="ntag_cmd_hsm.c">
+   <text>/**
+ * @file    ntag_cmd_ao.c
+ * @brief   NTAG CMD QPC HSM
+ *
+ * Copyright 2020, Harry Rostovtsev.
+ * All other rights reserved.
+ */
+
+/* Includes ------------------------------------------------------------------*/
+#include &quot;qpc.h&quot;
+#include &quot;ntag_ao.h&quot;
+#include &quot;ntag_cmd_hsm.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;signals.h&quot;
+#include &quot;ntag.h&quot;
 
 /* Compile-time called macros ------------------------------------------------*/
 //Q_DEFINE_THIS_FILE
@@ -394,20 +601,22 @@ $declare(AOs::QpcNtag_ctor)
 /* Private defines -----------------------------------------------------------*/
 /* Private macros ------------------------------------------------------------*/
 /* Private variables, objects, and function prototypes -----------------------*/
-$declare(AOs::QpcNtag)
+$declare(AOs::NtagCmdHsm)
 
-static QpcNtag l_qpcNtag;                      /**&lt; single instance of the AO */
+static NtagCmdHsm l_ntagCmdHsm;               /**&lt; single instance of the HSM */
 
-QActive * const AO_QpcNtag = (QActive *)&amp;l_qpcNtag.super; /**&lt; Opaque pointer */
+QHsm* const HSM_NtagCmd = (QHsm *)&amp;l_ntagCmdHsm.super;     /**&lt; Opaque pointer */
 
-$declare(AOs::QpcNtag_regReadDoneCallback)
+$declare(AOs::I2C_txDoneCallback)
+$declare(AOs::I2C_rxDoneCallback)
 
 /* Public and Exported functions ---------------------------------------------*/
-$define(AOs::QpcNtag_ctor)
+$define(AOs::NtagCmdHsm_ctor)
+$define(AOs::I2C_txDoneCallback)
+$define(AOs::I2C_rxDoneCallback)
 
 /* Private functions ---------------------------------------------------------*/
-$define(AOs::QpcNtag)
-$define(AOs::QpcNtag_regReadDoneCallback)</text>
+$define(AOs::NtagCmdHsm)</text>
   </file>
  </directory>
 </model>

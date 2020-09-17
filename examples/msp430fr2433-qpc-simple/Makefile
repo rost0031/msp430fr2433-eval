@@ -86,12 +86,9 @@ MFLAGS                = \
 						-ffreestanding \
                         -fno-common \
 						-fno-builtin \
+						-flto \
+						-fno-cse-follow-jumps \
 						$(WARNINGS)
-										
-										
-										
-#						-flto \
-#						-fno-cse-follow-jumps \
 											
 ASFLAGS               = -c $(MFLAGS)
 
@@ -149,7 +146,8 @@ C_SRCS                 += main.c \
                           i2c.c \
                           ntag.c \
                           main_ao.c \
-                          ntag_ao.c
+                          ntag_ao.c \
+                          ntag_cmd_hsm.c
                           
                           
                           

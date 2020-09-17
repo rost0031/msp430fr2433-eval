@@ -34,6 +34,7 @@ typedef enum {
     ERR_HW_UNKNOWN_IRQ      = 0x08, /**< Unknown interrupt detected */
     ERR_HW_NACK             = 0x09, /**< No reply (or NACK) from HW */
 
+    ERR_MEM_OUT             = 0x0A, /**< Out of memory error */
     ERR_UNIMPLEMENTED       = 0xFE, /**< Unimplemented feature */
     ERR_UNKNOWN             = 0xFF  /**< Max Error code*/
 } Error_t;

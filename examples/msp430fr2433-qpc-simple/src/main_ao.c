@@ -67,16 +67,6 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e);
 static QState QpcMain_active(QpcMain * const me, QEvt const * const e);
 
 /**
- * @brief    Second substate for demo purpose
- *
- * @param  [in,out] me: Pointer to the state machine
- * @param  [in,out]  e:  Pointer to the event being processed.
- * @return status: QState type that specifies where the state
- * machine is going next.
- */
-static QState QpcMain_SecondSubState(QpcMain * const me, QEvt const * const e);
-
-/**
  * @brief    First substate for demo purpose
  *
  * @param  [in,out] me: Pointer to the state machine
@@ -132,10 +122,6 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e) {
 
     QS_OBJ_DICTIONARY(&l_qpcMain);
     QS_FUN_DICTIONARY(&QHsm_top);
-    QS_FUN_DICTIONARY(&QpcMain_initial);
-    QS_FUN_DICTIONARY(&QpcMain_active);
-    QS_FUN_DICTIONARY(&QpcMain_FirstSubState);
-    QS_FUN_DICTIONARY(&QpcMain_SecondSubState);
 
     QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
     QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
@@ -162,32 +148,6 @@ static QState QpcMain_active(QpcMain * const me, QEvt const * const e) {
         }
         default: {
             status_ = Q_SUPER(&QHsm_top);
-            break;
-        }
-    }
-    return status_;
-}
-
-/**
- * @brief    Second substate for demo purpose
- *
- * @param  [in,out] me: Pointer to the state machine
- * @param  [in,out]  e:  Pointer to the event being processed.
- * @return status: QState type that specifies where the state
- * machine is going next.
- */
-/*.${AOs::QpcMain::SM::active::SecondSubState} .............................*/
-static QState QpcMain_SecondSubState(QpcMain * const me, QEvt const * const e) {
-    QState status_;
-    switch (e->sig) {
-        /*.${AOs::QpcMain::SM::active::SecondSubState} */
-        case Q_ENTRY_SIG: {
-            NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-            status_ = Q_HANDLED();
-            break;
-        }
-        default: {
-            status_ = Q_SUPER(&QpcMain_active);
             break;
         }
     }

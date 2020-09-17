@@ -24,15 +24,11 @@ NOTE: Requries QP5.</documentation>
    <!--${AOs::QpcMain::SM}-->
    <statechart properties="0x01">
     <!--${AOs::QpcMain::SM::initial}-->
-    <initial target="../1/2">
+    <initial target="../1/1">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
 QS_OBJ_DICTIONARY(&amp;l_qpcMain);
 QS_FUN_DICTIONARY(&amp;QHsm_top);
-QS_FUN_DICTIONARY(&amp;QpcMain_initial);
-QS_FUN_DICTIONARY(&amp;QpcMain_active);
-QS_FUN_DICTIONARY(&amp;QpcMain_FirstSubState);
-QS_FUN_DICTIONARY(&amp;QpcMain_SecondSubState);
 
 QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
@@ -57,21 +53,6 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
        <action box="0,-2,11,4"/>
       </tran_glyph>
      </tran>
-     <!--${AOs::QpcMain::SM::active::SecondSubState}-->
-     <state name="SecondSubState">
-      <documentation>/**
- * @brief    Second substate for demo purpose
- *
- * @param  [in,out] me: Pointer to the state machine
- * @param  [in,out]  e:  Pointer to the event being processed.
- * @return status: QState type that specifies where the state
- * machine is going next.
- */</documentation>
-      <entry>NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);</entry>
-      <state_glyph node="34,10,23,10">
-       <entry box="1,2,6,2"/>
-      </state_glyph>
-     </state>
      <!--${AOs::QpcMain::SM::active::FirstSubState}-->
      <state name="FirstSubState">
       <documentation>/**

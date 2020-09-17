@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model version="5.0.2" links="1">
+ <documentation>I2C Active Object</documentation>
+ <!--${qpc}-->
+ <framework name="qpc"/>
+ <!--${Events}-->
+ <package name="Events" stereotype="0x01">
+  <!--${Events::QpcI2CEvt_t}-->
+  <class name="QpcI2CEvt_t" superclass="qpc::QEvt">
+   <documentation>/** Event type used to transport I2C data */</documentation>
+   <!--${Events::QpcI2CEvt_t::data[6]}-->
+   <attribute name="data[6]" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** I2C data (received or to be sent) */</documentation>
+   </attribute>
+   <!--${Events::QpcI2CEvt_t::size}-->
+   <attribute name="size" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** Number of bytes in pData */</documentation>
+   </attribute>
+   <!--${Events::QpcI2CEvt_t::deviceAddress}-->
+   <attribute name="deviceAddress" type="uint8_t" visibility="0x01" properties="0x00">
+    <documentation>/** I2C Device Address */</documentation>
+   </attribute>
+   <!--${Events::QpcI2CEvt_t::caller}-->
+   <attribute name="caller" type="QActive* const" visibility="0x01" properties="0x00">
+    <documentation>/** This field specifies who sent this event originally so I2C AO knows
+ * where to send back the response which is this same event with data 
+ * filled out */</documentation>
+   </attribute>
+   <!--${Events::QpcI2CEvt_t::status}-->
+   <attribute name="status" type="Error_t" visibility="0x01" properties="0x00">
+    <documentation>/** Status of the operation */</documentation>
+   </attribute>
+  </class>
+ </package>
+ <!--${AOs}-->
+ <package name="AOs" stereotype="0x02">
+  <!--${AOs::I2CAO}-->
+  <class name="I2CAO" superclass="qpc::QActive">
+   <documentation>/**
+ * @brief	I2C &quot;class&quot;
+ */</documentation>
+   <!--${AOs::I2CAO::timerMain}-->
+   <attribute name="timerMain" type="QTimeEvt" visibility="0x01" properties="0x00">
+    <documentation>/**&lt; Main timer. */</documentation>
+   </attribute>
+   <!--${AOs::I2CAO::pActiveRequest}-->
+   <attribute name="pActiveRequest" type="QpcI2CEvt_t const*" visibility="0x01" properties="0x00">
+    <documentation>/** Reference to an event currently being handled. This is necessary so
+ * we can avoid copying data to local storage from an event and instead
+ * hold on to that event via this reference and manually garbage collect
+ * it after we are finished. */</documentation>
+   </attribute>
+   <!--${AOs::I2CAO::status}-->
+   <attribute name="status" type="Error_t" visibility="0x01" properties="0x00">
+    <documentation>/** Keep track of errors that might happen */</documentation>
+   </attribute>
+   <!--${AOs::I2CAO::requestQueue}-->
+   <attribute name="requestQueue" type="QEQueue" visibility="0x02" properties="0x00"/>
+   <!--${AOs::I2CAO::requestQSto[3]}-->
+   <attribute name="requestQSto[3]" type="QEvt const *" visibility="0x02" properties="0x00">
+    <documentation>/** Storage for deferred events */</documentation>
+   </attribute>
+   <!--${AOs::I2CAO::SM}-->
+   <statechart properties="0x03">
+    <!--${AOs::I2CAO::SM::initial}-->
+    <initial target="../1">
+     <action>(void)e; /* suppress the compiler warning about unused parameter */
+
+
+QS_OBJ_DICTIONARY(&amp;l_I2C);
+QS_FUN_DICTIONARY(&amp;QHsm_top);
+
+QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
+QS_SIG_DICTIONARY(I2C_RX_SIG, (void *)0);
+QS_SIG_DICTIONARY(I2C_TX_SIG, (void *)0);
+QS_SIG_DICTIONARY(I2C_RX_DONE_SIG, (void *)0);
+QS_SIG_DICTIONARY(I2C_TX_DONE_SIG, (void *)0);
+
+me-&gt;status = ERR_NONE;</action>
+     <initial_glyph conn="3,3,5,0,6,11">
+      <action box="0,-2,6,2"/>
+     </initial_glyph>
+    </initial>
+    <!--${AOs::I2CAO::SM::idle}-->
+    <state name="idle">
+     <entry>/* Always NULL out the current request upon entry */
+me-&gt;pActiveRequest = (QpcI2CEvt_t const *)0;
+
+/* Handle error if one occurred. */
+
+// TODO: do we want to post an event in case of error? - HR
+if (ERR_NONE != me-&gt;status) {
+    QS_BEGIN(ERR, 0);       /* application-specific record begin */
+    QS_STR(&quot;I2C error:&quot;);
+    QS_U32_HEX(1, me-&gt;status);
+    QS_END();
+
+    me-&gt;status = ERR_NONE;
+}
+
+/* Attempt to recall oldest deferred event. If one exists, this will
+ * also automatically post it to this AO */
+QActive_recall(&amp;me-&gt;super, &amp;me-&gt;requestQueue);</entry>
+     <!--${AOs::I2CAO::SM::idle::I2C_RX}-->
+     <tran trig="I2C_RX" target="../../2/3">
+      <action>/* Save the current event reference so the event doesn't go away */
+Q_NEW_REF(me-&gt;pActiveRequest, QpcI2CEvt_t);</action>
+      <tran_glyph conn="5,54,3,3,32">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::I2CAO::SM::idle::I2C_TX}-->
+     <tran trig="I2C_TX" target="../../2/2">
+      <action>/* Save the current event reference so the event doesn't go away */
+Q_NEW_REF(me-&gt;pActiveRequest, QpcI2CEvt_t);</action>
+      <tran_glyph conn="5,44,3,3,32">
+       <action box="0,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <state_glyph node="5,14,15,52">
+      <entry box="1,2,6,2"/>
+     </state_glyph>
+    </state>
+    <!--${AOs::I2CAO::SM::busy}-->
+    <state name="busy">
+     <entry>/* Arm timer upon entry to busy state to prevent being stuck here */
+QTimeEvt_rearm(&amp;me-&gt;timerMain, MSEC_TO_TICKS(10));</entry>
+     <exit>/* Upon exit, ALWAYS delete the active event reference */
+Q_DELETE_REF(me-&gt;pActiveRequest);
+
+/* If the timer doesn't fire, kill it upon exit */
+QTimeEvt_disarm(&amp;me-&gt;timerMain);</exit>
+     <!--${AOs::I2CAO::SM::busy::I2C_TX, I2C_RX}-->
+     <tran trig="I2C_TX, I2C_RX">
+      <action brief="defer the event">/* attempt to defer the new request event */
+if (!QActive_defer(&amp;me-&gt;super, &amp;me-&gt;requestQueue, e)) {
+    me-&gt;status = ERR_MEM_OUT;
+}
+</action>
+      <tran_glyph conn="34,63,3,-1,21">
+       <action box="0,-2,12,4"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::I2CAO::SM::busy::TIMER}-->
+     <tran trig="TIMER" target="../../1">
+      <tran_glyph conn="34,33,3,3,-29">
+       <action box="-6,-2,10,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::I2CAO::SM::busy::tx}-->
+     <state name="tx">
+      <entry>I2C_exchangeNonBlocking(
+    me-&gt;pActiveRequest-&gt;deviceAddress, 
+    I2CCmdTx,
+    me-&gt;pActiveRequest-&gt;size, 
+    me-&gt;pActiveRequest-&gt;data
+);</entry>
+      <!--${AOs::I2CAO::SM::busy::tx::I2C_TX_DONE}-->
+      <tran trig="I2C_TX_DONE" target="../../../1">
+       <tran_glyph conn="53,49,1,3,-48">
+        <action box="-13,-2,12,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="37,42,16,8">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <!--${AOs::I2CAO::SM::busy::rx}-->
+     <state name="rx">
+      <entry>I2C_exchangeNonBlocking(
+    me-&gt;pActiveRequest-&gt;deviceAddress, 
+    I2CCmdRx,
+    me-&gt;pActiveRequest-&gt;size, 
+    me-&gt;pActiveRequest-&gt;data
+);</entry>
+      <!--${AOs::I2CAO::SM::busy::rx::I2C_RX_DONE}-->
+      <tran trig="I2C_RX_DONE" target="../../../1">
+       <tran_glyph conn="53,58,1,3,-48">
+        <action box="-13,-2,12,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="37,52,16,8">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <state_glyph node="34,14,25,52">
+      <entry box="1,2,6,2"/>
+      <exit box="1,4,6,2"/>
+     </state_glyph>
+    </state>
+    <state_diagram size="67,73"/>
+   </statechart>
+  </class>
+  <!--${AOs::AO_I2C}-->
+  <attribute name="AO_I2C" type="QActive * const" visibility="0x00" properties="0x00">
+   <documentation>/** &quot;opaque&quot; pointer to the Active Object */</documentation>
+  </attribute>
+  <!--${AOs::I2CAO_ctor}-->
+  <operation name="I2CAO_ctor" type="void" visibility="0x00" properties="0x00">
+   <documentation>/**
+ * @brief     C &quot;constructor&quot; for this &quot;class&quot;.
+ *
+ * Initializes all the timers and queues used by the AO and sets of the
+ * first state.
+ *
+ * @return None
+ */</documentation>
+   <code>I2CAO *me = &amp;l_I2C;
+
+QActive_ctor(&amp;me-&gt;super, Q_STATE_CAST(&amp;I2CAO_initial));
+QEQueue_init(&amp;me-&gt;requestQueue,
+              me-&gt;requestQSto, Q_DIM(me-&gt;requestQSto));
+QTimeEvt_ctorX(&amp;me-&gt;timerMain, &amp;me-&gt;super, TIMER_SIG, 0);</code>
+  </operation>
+  <!--${AOs::I2CAO_txDoneCallback}-->
+  <operation name="I2CAO_txDoneCallback" type="void" visibility="0x00" properties="0x00">
+   <documentation>/**
+ * @brief     Callback for I2C TX being done
+ * @return None
+ */</documentation>
+   <!--${AOs::I2CAO_txDoneCall~::pI2CData}-->
+   <parameter name="pI2CData" type="const I2CData_t* const"/>
+   <code>static const QEvt evt = {I2C_TX_DONE_SIG, 0, 0};
+QACTIVE_POST(AO_I2C, &amp;evt, AO_I2C);</code>
+  </operation>
+ </package>
+ <!--${.}-->
+ <directory name=".">
+  <!--${.::i2c_ao.h}-->
+  <file name="i2c_ao.h">
+   <text>/**
+ * @file    i2c_ao.h
+ * @brief   I2C QPC Active Object
+ *
+ * Copyright 2020, Harry Rostovtsev.
+ * All other rights reserved.
+ */
+
+/* Define to prevent recursive inclusion -------------------------------------*/
+#ifndef __I2C_AO_H
+#define __I2C_AO_H
+
+/* Includes ------------------------------------------------------------------*/
+#include &quot;qpc.h&quot;
+#include &quot;errors.h&quot;
+
+/* Exported defines ----------------------------------------------------------*/
+/* Exported macros -----------------------------------------------------------*/
+/* Exported types ------------------------------------------------------------*/
+
+$declare(Events::QpcI2CEvt_t)
+
+/* Exported constants --------------------------------------------------------*/
+$declare(AOs::AO_I2C)
+
+/* Exported functions --------------------------------------------------------*/
+$declare(AOs::I2CAO_ctor)
+
+
+#endif                                                          /* __I2C_AO_H */
+</text>
+  </file>
+  <!--${.::i2c_ao.c}-->
+  <file name="i2c_ao.c">
+   <text>/**
+ * @file    i2c_ao.c
+ * @brief   I2C QPC Active Object
+ *
+ * Copyright 2020, Harry Rostovtsev.
+ * All other rights reserved.
+ */
+
+/* Includes ------------------------------------------------------------------*/
+
+#include &quot;i2c_ao.h&quot;
+#include &quot;bsp.h&quot;
+#include &quot;signals.h&quot;
+#include &quot;i2c.h&quot;
+
+/* Compile-time called macros ------------------------------------------------*/
+//Q_DEFINE_THIS_FILE
+
+/* Private typedefs ----------------------------------------------------------*/
+/* Private defines -----------------------------------------------------------*/
+/* Private macros ------------------------------------------------------------*/
+/* Private variables, objects, and function prototypes -----------------------*/
+$declare(AOs::I2CAO)
+
+static I2CAO l_I2C;                            /**&lt; single instance of the AO */
+
+QActive * const AO_I2C = (QActive *)&amp;l_I2C.super;   /**&lt; Opaque pointer */
+
+$declare(AOs::I2CAO_txDoneCallback)
+
+/* Public and Exported functions ---------------------------------------------*/
+$define(AOs::I2CAO_ctor)
+
+/* Private functions ---------------------------------------------------------*/
+$define(AOs::I2CAO)
+$define(AOs::I2CAO_txDoneCallback)</text>
+  </file>
+ </directory>
+</model>

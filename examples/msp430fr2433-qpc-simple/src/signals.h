@@ -42,6 +42,13 @@ typedef enum Signals {
     NTAG_MEM_WRITE_DONE_SIG,
     /** @} */
 
+    /** @{ Signals for I2C commands */
+    I2C_RX_SIG,
+    I2C_RX_DONE_SIG,
+    I2C_TX_SIG,
+    I2C_TX_DONE_SIG,
+    /** @} */
+
     TERMINATE_SIG,
     MAX_SHARED_SIG,       /* Last published shared signal; should always last */
     MAX_PUB_SIG           /* This signal should be used if LWIP is being used */
