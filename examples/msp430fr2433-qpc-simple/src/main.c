@@ -27,7 +27,7 @@ static QEvt const *qpcMainQueueSto[3];
 static QEvt const *qpcNtagQueueSto[3];
 //static QEvt const *qpcI2CQueueSto[3];
 static QF_MPOOL_EL(QpcMainEvt) smlPoolSto[5];                     /* sml pool */
-static QF_MPOOL_EL(NtagReadRegEvt_t) medPoolSto[5];                    /* med pool */
+static QF_MPOOL_EL(NtagReadMemRespQEvt_t) medPoolSto[5];                    /* med pool */
 
 /* Private function prototypes -----------------------------------------------*/
 

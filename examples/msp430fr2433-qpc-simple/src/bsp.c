@@ -156,7 +156,8 @@ void QF_onStartup(void)
 
     TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
 #if USE_CS_MODULE
-    TA0CCR0 = CS_getSMCLK();
+//    TA0CCR0 = CS_getSMCLK();
+    TA0CCR0 = 999;
 #else
     TA0CCR0 = 999;
 #endif

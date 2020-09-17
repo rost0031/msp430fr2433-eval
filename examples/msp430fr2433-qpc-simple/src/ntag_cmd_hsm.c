@@ -60,22 +60,28 @@ typedef struct {
      * we can avoid copying data to local storage from an event and instead
      * hold on to that event via this reference and manually garbage collect
      * it after we are finished. */
-    NtagReadRegEvt_t const * pActiveRequest;
+    NtagReadRegQEvt_t const * pActiveRequest;
 
     /** Internal data storage to use with I2C driver */
     uint8_t dataBufTx[6];
 
     /** Number of bytes in dataBufTx */
-    uint8_t dataLenTx;
+    uint8_t dataLenToTx;
 
     /** Internal data storage to use with I2C driver */
     uint8_t dataBufRx[6];
 
-    /** Number of bytes in dataBufRx */
-    uint8_t dataLenRx;
+    /** Number of bytes in dataBufRx expected to receive */
+    uint8_t dataLenToRx;
 
     /** Keep track of status and/or errors that can occur */
     Error_t status;
+
+    /** Number of bytes successfully sent */
+    uint8_t dataLenTxed;
+
+    /** Number of bytes in dataBufRx actually received */
+    uint8_t dataLenRxed;
 } NtagCmdHsm;
 
 /* protected: */
@@ -84,6 +90,8 @@ static QState NtagCmdHsm_idle(NtagCmdHsm * const me, QEvt const * const e);
 static QState NtagCmdHsm_busy(NtagCmdHsm * const me, QEvt const * const e);
 static QState NtagCmdHsm_writeAddress(NtagCmdHsm * const me, QEvt const * const e);
 static QState NtagCmdHsm_readByte(NtagCmdHsm * const me, QEvt const * const e);
+static QState NtagCmdHsm_rx(NtagCmdHsm * const me, QEvt const * const e);
+static QState NtagCmdHsm_tx(NtagCmdHsm * const me, QEvt const * const e);
 /*.$enddecl${AOs::NtagCmdHsm} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 static NtagCmdHsm l_ntagCmdHsm;               /**< single instance of the HSM */
@@ -144,7 +152,7 @@ static void I2C_txDoneCallback(const I2CData_t* const pI2CData) {
     NtagCmdHsm *me;
     me = &l_ntagCmdHsm;
 
-    me->dataLenTx += pI2CData->buffer.len;
+    me->dataLenTxed += pI2CData->buffer.len;
     me->status = pI2CData->status;
 
     static const QEvt evt = {I2C_TX_SIG, 0, 0};
@@ -163,7 +171,7 @@ static void I2C_rxDoneCallback(const I2CData_t* const pI2CData) {
     NtagCmdHsm *me;
     me = &l_ntagCmdHsm;
 
-    me->dataLenRx += pI2CData->buffer.len;
+    me->dataLenRxed += pI2CData->buffer.len;
     me->status = pI2CData->status;
 
     static const QEvt evt = {I2C_RX_SIG, 0, 0};
@@ -185,6 +193,8 @@ static QState NtagCmdHsm_initial(NtagCmdHsm * const me, QEvt const * const e) {
     QS_FUN_DICTIONARY(&NtagCmdHsm_busy);
     QS_FUN_DICTIONARY(&NtagCmdHsm_writeAddress);
     QS_FUN_DICTIONARY(&NtagCmdHsm_readByte);
+    QS_FUN_DICTIONARY(&NtagCmdHsm_rx);
+    QS_FUN_DICTIONARY(&NtagCmdHsm_tx);
 
     return Q_TRAN(&NtagCmdHsm_idle);
 }
@@ -198,11 +208,13 @@ static QState NtagCmdHsm_idle(NtagCmdHsm * const me, QEvt const * const e) {
             me->regSize   = 0;
             me->regOffset = 0;
 
-            me->dataLenTx = 0;
-            me->dataLenRx = 0;
+            me->dataLenToTx = 0;
+            me->dataLenToRx = 0;
+            me->dataLenTxed = 0;
+            me->dataLenRxed = 0;
 
             /* Always NULL out the current request upon entry */
-            me->pActiveRequest = (NtagReadRegEvt_t *)0;
+            me->pActiveRequest = (NtagReadRegQEvt_t *)0;
 
             /* Handle error if one occurred. */
 
@@ -221,12 +233,58 @@ static QState NtagCmdHsm_idle(NtagCmdHsm * const me, QEvt const * const e) {
         /*.${AOs::NtagCmdHsm::SM::idle::NTAG_REG_READ} */
         case NTAG_REG_READ_SIG: {
             /* Save the current event reference so the event doesn't go away */
-            Q_NEW_REF(me->pActiveRequest, NtagReadRegEvt_t);
+            Q_NEW_REF(me->pActiveRequest, NtagReadRegQEvt_t);
 
             /* Get register size and clear offset */
             me->regSize = NTAG_getRegSize(me->pActiveRequest->reg);
             me->regOffset = 0;
             status_ = Q_TRAN(&NtagCmdHsm_writeAddress);
+            break;
+        }
+        /*.${AOs::NtagCmdHsm::SM::idle::NTAG_MEM_READ} */
+        case NTAG_MEM_READ_SIG: {
+            /* Save the current event reference so the event doesn't go away */
+            Q_NEW_REF(me->pActiveRequest, NtagReadMemReqQEvt_t);
+
+            /* Fill out me->dataBufTx and me->dataLenTx with data needed to read
+             * data from an address on a tag */
+            NTAG_getMemHdr(
+                ((NtagReadMemReqQEvt_t const *)e)->addr,
+                sizeof(me->dataBufTx),
+                &(me->dataLenToTx),
+                me->dataBufTx
+            );
+
+            /* We are expecting to read any data (this really should be no more than 4)
+             * since we don't really have the memory to handle large reads */
+            me->dataLenToRx = ((NtagReadMemReqQEvt_t const *)e)->nBytes;
+            me->dataLenRxed = 0;
+            status_ = Q_TRAN(&NtagCmdHsm_tx);
+            break;
+        }
+        /*.${AOs::NtagCmdHsm::SM::idle::NTAG_MEM_WRITE} */
+        case NTAG_MEM_WRITE_SIG: {
+            /* Save the current event reference so the event doesn't go away */
+            Q_NEW_REF(me->pActiveRequest, NtagWriteMemReqQEvt_t);
+
+            /* Fill out me->dataBufTx and me->dataLenTx with data needed to write
+             * data to an address on a tag */
+            NTAG_getMemHdr(
+                ((NtagWriteMemReqQEvt_t const *)e)->addr,
+                sizeof(me->dataBufTx),
+                &(me->dataLenToTx),
+                me->dataBufTx
+            );
+
+            memcpy(&me->dataBufTx[0 + me->dataLenToTx],
+                ((NtagWriteMemReqQEvt_t const *)e)->data,
+                sizeof(((NtagWriteMemReqQEvt_t const *)e)->data));
+            me->dataLenToTx += sizeof(((NtagWriteMemReqQEvt_t const *)e)->data);
+
+            /* We are not expecting to read any data */
+            me->dataLenToRx = 0;
+            me->dataLenRxed = 0;
+            status_ = Q_TRAN(&NtagCmdHsm_tx);
             break;
         }
         default: {
@@ -260,21 +318,13 @@ static QState NtagCmdHsm_writeAddress(NtagCmdHsm * const me, QEvt const * const 
     switch (e->sig) {
         /*.${AOs::NtagCmdHsm::SM::busy::writeAddress} */
         case Q_ENTRY_SIG: {
-            #if 0
-            QpcI2CEvt_t* pEvt = Q_NEW(QpcI2CEvt_t, I2C_TX_SIG);
-            pEvt->reg = me->pActiveRequest->reg;
-            NTAG_getRegReadHdr(pEvt->reg, me->offset, sizeof(pEvt->data),
-                &(pEvt->size), pEvt->data);
-            QACTIVE_POST(AO_I2C, (QEvt *)pEvt, AO_Ntag);
-            #endif
-
             /* Fill out me->dataBuf and me->dataLen with data needed to write
              * address of the register to tag */
             NTAG_getRegReadHdr(
                 me->pActiveRequest->reg,
                 me->regOffset,
                 sizeof(me->dataBufTx),
-                &(me->dataLenTx),
+                &(me->dataLenToTx),
                 me->dataBufTx
             );
 
@@ -285,7 +335,7 @@ static QState NtagCmdHsm_writeAddress(NtagCmdHsm * const me, QEvt const * const 
             I2C_exchangeNonBlocking(
                 NTAG_I2C_ADDRESS,
                 I2CCmdTx,
-                me->dataLenTx,
+                me->dataLenToTx,
                 me->dataBufTx
             );
             status_ = Q_HANDLED();
@@ -341,12 +391,101 @@ static QState NtagCmdHsm_readByte(NtagCmdHsm * const me, QEvt const * const e) {
                 QACTIVE_POST(AO_Ntag, (QEvt *)(me->pActiveRequest), AO_Ntag);
                 #endif
 
-                NtagReadRegEvt_t *pEvt = Q_NEW(NtagReadRegEvt_t, NTAG_REG_READ_DONE_SIG);
+                NtagReadRegQEvt_t *pEvt = Q_NEW(NtagReadRegQEvt_t, NTAG_REG_READ_DONE_SIG);
                 pEvt->reg = me->pActiveRequest->reg;
                 pEvt->value = (uint16_t)me->dataBufRx[0];
                 if (me->regSize == 2) {
                     pEvt->value |= (uint16_t)(me->dataBufRx[1] << 8);
                 }
+                QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
+                status_ = Q_TRAN(&NtagCmdHsm_idle);
+            }
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&NtagCmdHsm_busy);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::NtagCmdHsm::SM::busy::rx} ........................................*/
+static QState NtagCmdHsm_rx(NtagCmdHsm * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::NtagCmdHsm::SM::busy::rx} */
+        case Q_ENTRY_SIG: {
+
+            /* Register callback to call when the I2C RX completes */
+            I2C_regCallback(I2C_rxDoneCallback);
+
+            /* Initiate a non-blocking I2C RX command */
+            I2C_exchangeNonBlocking(
+                NTAG_I2C_ADDRESS,
+                I2CCmdRx,
+                me->dataLenToRx,
+                me->dataBufRx
+            );
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::NtagCmdHsm::SM::busy::rx::I2C_RX} */
+        case I2C_RX_SIG: {
+            if (me->dataLenToRx != me->dataLenRxed) {
+                me->status = ERR_LEN_INVALID;
+            }
+
+            NtagReadMemRespQEvt_t *pEvt = Q_NEW(NtagReadMemRespQEvt_t, NTAG_MEM_READ_DONE_SIG);
+            pEvt->addr = ((me->dataBufTx[0]) << 8 | me->dataBufTx[1]);
+            pEvt->nBytes = me->dataLenRxed;
+            memcpy(pEvt->data, me->dataBufRx, me->dataLenRxed);
+            QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
+            status_ = Q_TRAN(&NtagCmdHsm_idle);
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&NtagCmdHsm_busy);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::NtagCmdHsm::SM::busy::tx} ........................................*/
+static QState NtagCmdHsm_tx(NtagCmdHsm * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::NtagCmdHsm::SM::busy::tx} */
+        case Q_ENTRY_SIG: {
+
+
+            /* Register callback to call when the I2C TX completes */
+            I2C_regCallback(I2C_txDoneCallback);
+
+            /* Initiate a non-blocking I2C TX command */
+            I2C_exchangeNonBlocking(
+                NTAG_I2C_ADDRESS,
+                I2CCmdTx,
+                me->dataLenToTx,
+                me->dataBufTx
+            );
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::NtagCmdHsm::SM::busy::tx::I2C_TX} */
+        case I2C_TX_SIG: {
+            /*.${AOs::NtagCmdHsm::SM::busy::tx::I2C_TX::[DataToRx?]} */
+            if (me->dataLenToRx > 0) {
+                status_ = Q_TRAN(&NtagCmdHsm_rx);
+            }
+            /*.${AOs::NtagCmdHsm::SM::busy::tx::I2C_TX::[else]} */
+            else {
+                if (me->dataLenToTx != me->dataLenTxed) {
+                    me->status = ERR_LEN_INVALID;
+                }
+
+                NtagWriteMemRespQEvt_t *pEvt = Q_NEW(NtagWriteMemRespQEvt_t, NTAG_MEM_WRITE_DONE_SIG);
+                pEvt->addr = ((me->dataBufTx[0]) << 8 | me->dataBufTx[1]);
+                pEvt->nBytes = me->dataLenTxed;
                 QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
                 status_ = Q_TRAN(&NtagCmdHsm_idle);
             }

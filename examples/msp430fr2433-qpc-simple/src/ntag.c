@@ -128,6 +128,19 @@ void NTAG_getRegReadHdr(
 }
 
 /******************************************************************************/
+void NTAG_getMemHdr(
+        uint16_t address,
+        uint8_t dataSize,
+        uint8_t* const pBytesInData,
+        uint8_t* const pData
+)
+{
+    pData[0] = (uint8_t)(address >> 8);
+    pData[1] = (uint8_t)(address);
+    *pBytesInData = 2;
+}
+
+/******************************************************************************/
 void NTAG_regCallback(NtagEvt_t ntagEvt, NtagCallback_t callback)
 {
     ntagData.callbacks[ntagEvt] = callback;

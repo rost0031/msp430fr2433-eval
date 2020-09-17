@@ -31,6 +31,7 @@
 #include "signals.h"
 #include "ntag.h"
 #include "i2c.h"
+#include "ntag_ao.h"
 
 /* Compile-time called macros ------------------------------------------------*/
 //Q_DEFINE_THIS_FILE
@@ -51,6 +52,7 @@ typedef struct {
 
     /**< Main timer. */
     QTimeEvt timerMain;
+    uint16_t addr;
 } QpcMain;
 
 /* protected: */
@@ -75,6 +77,7 @@ static QState QpcMain_active(QpcMain * const me, QEvt const * const e);
  * machine is going next.
  */
 static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e);
+static QState QpcMain_state1(QpcMain * const me, QEvt const * const e);
 /*.$enddecl${AOs::QpcMain} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 static QpcMain l_qpcMain;                      /**< single instance of the AO */
@@ -177,6 +180,26 @@ static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e) {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
 
             //P1OUT ^=  LED1;  /* toggle LED1 */
+            status_ = Q_TRAN(&QpcMain_state1);
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&QpcMain_active);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::QpcMain::SM::active::state1} .....................................*/
+static QState QpcMain_state1(QpcMain * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::QpcMain::SM::active::state1} */
+        case Q_ENTRY_SIG: {
+            NtagReadMemReqQEvt_t *pEvt = Q_NEW(NtagReadMemReqQEvt_t, NTAG_MEM_READ_SIG);
+            pEvt->nBytes = 4;
+            pEvt->addr = 0x00;
+            QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, me);
             status_ = Q_HANDLED();
             break;
         }

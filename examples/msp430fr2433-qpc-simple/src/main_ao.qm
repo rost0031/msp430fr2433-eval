@@ -21,6 +21,8 @@ NOTE: Requries QP5.</documentation>
    <attribute name="timerMain" type="QTimeEvt" visibility="0x01" properties="0x00">
     <documentation>/**&lt; Main timer. */</documentation>
    </attribute>
+   <!--${AOs::QpcMain::addr}-->
+   <attribute name="addr" type="uint16_t" visibility="0x01" properties="0x00"/>
    <!--${AOs::QpcMain::SM}-->
    <statechart properties="0x01">
     <!--${AOs::QpcMain::SM::initial}-->
@@ -65,15 +67,25 @@ QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);</action>
  */</documentation>
       <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );</entry>
       <!--${AOs::QpcMain::SM::active::FirstSubState::TIMER}-->
-      <tran trig="TIMER">
+      <tran trig="TIMER" target="../../2">
        <action>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 1000 ) );
-
+me-&gt;addr = 0;
 //P1OUT ^=  LED1;  /* toggle LED1 */</action>
-       <tran_glyph conn="6,16,3,-1,18">
+       <tran_glyph conn="6,16,3,3,29">
         <action box="0,-2,7,2"/>
        </tran_glyph>
       </tran>
       <state_glyph node="6,10,23,10">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
+     <!--${AOs::QpcMain::SM::active::state1}-->
+     <state name="state1">
+      <entry>NtagReadMemReqQEvt_t *pEvt = Q_NEW(NtagReadMemReqQEvt_t, NTAG_MEM_READ_SIG);
+pEvt-&gt;nBytes = 4;
+pEvt-&gt;addr = 0x00;
+QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, me);</entry>
+      <state_glyph node="35,10,24,10">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
@@ -153,6 +165,7 @@ $declare(AOs::QpcMain_ctor)
 #include &quot;signals.h&quot;
 #include &quot;ntag.h&quot;
 #include &quot;i2c.h&quot;
+#include &quot;ntag_ao.h&quot;
 
 /* Compile-time called macros ------------------------------------------------*/
 //Q_DEFINE_THIS_FILE

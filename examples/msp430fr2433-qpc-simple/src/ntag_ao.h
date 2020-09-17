@@ -34,10 +34,10 @@
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/
 
-/*.$declare${Events::NtagReadRegEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+/*.$declare${Events::NtagReadRegQEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
 
 /** @brief NTAG event */
-/*.${Events::NtagReadRegEvt_t} .............................................*/
+/*.${Events::NtagReadRegQEvt_t} ............................................*/
 typedef struct {
 /* protected: */
     QEvt super;
@@ -47,8 +47,74 @@ typedef struct {
 
     /** Value of the register (if used for a response) */
     uint16_t value;
-} NtagReadRegEvt_t;
-/*.$enddecl${Events::NtagReadRegEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+} NtagReadRegQEvt_t;
+/*.$enddecl${Events::NtagReadRegQEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*.$declare${Events::NtagReadMemReqQEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+/** @brief NTAG Read Memory event */
+/*.${Events::NtagReadMemReqQEvt_t} .........................................*/
+typedef struct {
+/* protected: */
+    QEvt super;
+
+    /** Which memory address to read from */
+    uint16_t addr;
+
+    /** Number of bytes to read */
+    uint8_t nBytes;
+} NtagReadMemReqQEvt_t;
+/*.$enddecl${Events::NtagReadMemReqQEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*.$declare${Events::NtagReadMemRespQEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+/** @brief NTAG Read Memory Response event */
+/*.${Events::NtagReadMemRespQEvt_t} ........................................*/
+typedef struct {
+/* protected: */
+    QEvt super;
+
+    /** Which memory address to read from */
+    uint16_t addr;
+
+    /** Number of bytes to read */
+    uint8_t nBytes;
+
+    /** Data to write to a page */
+    uint8_t data[4];
+} NtagReadMemRespQEvt_t;
+/*.$enddecl${Events::NtagReadMemRespQEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*.$declare${Events::NtagWriteMemReqQEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+/** @brief NTAG Write Memory Page event used to request a write of a memory page */
+/*.${Events::NtagWriteMemReqQEvt_t} ........................................*/
+typedef struct {
+/* protected: */
+    QEvt super;
+
+    /** Which memory address to read from */
+    uint16_t addr;
+
+    /** Number of bytes to read */
+    uint8_t nBytes;
+
+    /** Data to write to a page */
+    uint8_t data[4];
+} NtagWriteMemReqQEvt_t;
+/*.$enddecl${Events::NtagWriteMemReqQEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
+/*.$declare${Events::NtagWriteMemRespQEvt_t} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
+
+/** @brief NTAG Write Memory Response event */
+/*.${Events::NtagWriteMemRespQEvt_t} .......................................*/
+typedef struct {
+/* protected: */
+    QEvt super;
+
+    /** Which memory address to read from */
+    uint16_t addr;
+
+    /** Number of bytes to read */
+    uint8_t nBytes;
+} NtagWriteMemRespQEvt_t;
+/*.$enddecl${Events::NtagWriteMemRespQEvt_t} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 /* Exported constants --------------------------------------------------------*/
 /*.$declare${AOs::AO_Ntag} vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv*/
