@@ -26,21 +26,22 @@ NOTE: Requries QP5.</documentation>
    <!--${AOs::QpcMain::byte}-->
    <attribute name="byte" type="uint8_t" visibility="0x01" properties="0x00"/>
    <!--${AOs::QpcMain::SM}-->
-   <statechart properties="0x01">
+   <statechart properties="0x03">
     <!--${AOs::QpcMain::SM::initial}-->
     <initial target="../1/1">
      <action>(void)e; /* suppress the compiler warning about unused parameter */
 
 QS_OBJ_DICTIONARY(&amp;l_qpcMain);
 QS_FUN_DICTIONARY(&amp;QHsm_top);
-
+#if 0
 QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
 QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
 
 QActive_subscribe(&amp;me-&gt;super, NTAG_REG_READ_DONE_SIG);
 QActive_subscribe(&amp;me-&gt;super, NTAG_REG_WRITE_DONE_SIG);
 QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_READ_DONE_SIG);
-QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_WRITE_DONE_SIG);</action>
+QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_WRITE_DONE_SIG);
+#endif</action>
      <initial_glyph conn="3,3,5,0,6,7">
       <action box="0,-2,6,2"/>
      </initial_glyph>
@@ -133,10 +134,10 @@ QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, me);</entry>
       <!--${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_DONE}-->
       <tran trig="NTAG_MEM_WRITE_DONE">
        <action>me-&gt;addr++;</action>
-       <!--${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_D~::[me->addr<12]}-->
+       <!--${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_D~::[moreToWrite?]}-->
        <choice target="../..">
-        <guard>me-&gt;addr &lt; 12</guard>
-        <choice_glyph conn="39,53,5,0,15,-10">
+        <guard brief="more ToWrite?">me-&gt;addr &lt; 12</guard>
+        <choice_glyph conn="39,53,5,2,15,-10">
          <action box="3,-2,10,2"/>
         </choice_glyph>
        </choice>

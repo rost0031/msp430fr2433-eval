@@ -114,12 +114,13 @@ QS_SIG_DICTIONARY(NTAG_MEM_READ_DONE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
 QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);
 
-
+#if 0
 QActive_subscribe(&amp;me-&gt;super, NTAG_REG_READ_DONE_SIG);
 QActive_subscribe(&amp;me-&gt;super, NTAG_REG_WRITE_DONE_SIG);
 QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_READ_DONE_SIG);
-QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_WRITE_DONE_SIG);</action>
-     <initial_glyph conn="3,3,5,0,52,13">
+QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_WRITE_DONE_SIG);
+#endif</action>
+     <initial_glyph conn="3,3,5,0,53,13">
       <action box="0,-2,6,2"/>
      </initial_glyph>
     </initial>
@@ -133,8 +134,8 @@ QActive_subscribe(&amp;me-&gt;super, NTAG_MEM_WRITE_DONE_SIG);</action>
  * @return status: QState type that specifies where the state
  * machine is going next.
  */</documentation>
-     <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 10 ) );
-//NTAG_init();</entry>
+     <entry>QTimeEvt_rearm( &amp;me-&gt;timerMain, MSEC_TO_TICKS( 50 ) );
+</entry>
      <!--${AOs::NtagAO::SM::busy::NTAG_REG_READ_DONE}-->
      <tran trig="NTAG_REG_READ_DONE" target="../../2">
       <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
@@ -163,7 +164,8 @@ QS_END();
      </tran>
      <!--${AOs::NtagAO::SM::busy::NTAG_MEM_READ_DONE}-->
      <tran trig="NTAG_MEM_READ_DONE" target="../../2">
-      <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+      <action>#if 0
+QS_BEGIN(LOG, 0);       /* application-specific record begin */
 QS_STR(&quot;MEM addr:&quot;);
 QS_U16(1, ((NtagReadMemRespQEvt_t const *) e)-&gt;addr );
 QS_STR(&quot;bytes:&quot;);
@@ -171,23 +173,29 @@ QS_U16(1, ((NtagReadMemRespQEvt_t const *) e)-&gt;nBytes );
 QS_STR(&quot;data:&quot;);
 QS_MEM(((NtagReadMemRespQEvt_t const *) e)-&gt;data, ((NtagReadMemRespQEvt_t const *) e)-&gt;nBytes);
 QS_END();
+#endif
 QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);</action>
       <tran_glyph conn="47,52,3,3,-41">
        <action box="-21,-2,20,2"/>
       </tran_glyph>
      </tran>
-     <!--${AOs::NtagAO::SM::busy::NTAG_MEM_WRITE_DONE}-->
-     <tran trig="NTAG_MEM_WRITE_DONE" target="../../2">
-      <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+     <!--${AOs::NtagAO::SM::busy::writePage}-->
+     <state name="writePage">
+      <!--${AOs::NtagAO::SM::busy::writePage::NTAG_MEM_WRITE_DONE}-->
+      <tran trig="NTAG_MEM_WRITE_DONE" target="../../6">
+       <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
 QS_STR(&quot;MEM Data:&quot;);
 QS_U16(1, ((NtagWriteMemRespQEvt_t const *) e)-&gt;addr );
 QS_U8(1, ((NtagWriteMemRespQEvt_t const *) e)-&gt;nBytes);
 QS_END();
-QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);</action>
-      <tran_glyph conn="47,62,3,3,-41">
-       <action box="-21,-2,20,2"/>
-      </tran_glyph>
-     </tran>
+
+</action>
+       <tran_glyph conn="58,66,2,3,-3,27">
+        <action box="0,1,21,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="54,55,23,11"/>
+     </state>
      <!--${AOs::NtagAO::SM::busy::init}-->
      <state name="init">
       <entry>NtagReadRegQEvt_t *pEvt = Q_NEW(NtagReadRegQEvt_t, NTAG_REG_READ_SIG);
@@ -206,29 +214,66 @@ QS_END();
        <!--${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DO~::[else]}-->
        <choice target="../..">
         <guard>else</guard>
-        <choice_glyph conn="55,34,5,1,23,-13,-4">
+        <choice_glyph conn="56,34,5,1,23,-13,-4">
          <action box="7,-2,10,2"/>
         </choice_glyph>
        </choice>
        <!--${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DO~::[VCC_OK?]}-->
        <choice target="../../../../2">
         <guard brief="VCC_OK?">((NtagReadRegQEvt_t const *) e)-&gt;value &amp; NTAG_REG_STATUS0_VCC_SUPPLY_OK_MASK</guard>
-        <choice_glyph conn="55,34,5,1,-24">
+        <choice_glyph conn="56,34,5,1,-25">
          <action box="-8,1,10,2"/>
         </choice_glyph>
        </choice>
-       <tran_glyph conn="55,27,2,-1,7">
+       <tran_glyph conn="56,27,2,-1,7">
         <action box="0,1,21,2"/>
        </tran_glyph>
       </tran>
-      <state_glyph node="51,16,23,11">
+      <state_glyph node="52,16,23,11">
        <entry box="1,2,6,2"/>
       </state_glyph>
      </state>
-     <!--${AOs::NtagAO::SM::busy::state1}-->
-     <smstate name="state1">
-      <smstate_glyph node="82,45,25,9"/>
-     </smstate>
+     <!--${AOs::NtagAO::SM::busy::checkEEPROM}-->
+     <state name="checkEEPROM">
+      <entry>NtagReadRegQEvt_t *pEvt = Q_NEW(NtagReadRegQEvt_t, NTAG_REG_READ_SIG);
+pEvt-&gt;reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
+pEvt-&gt;value = 0xFFFF;
+QHSM_DISPATCH(me-&gt;ntagCmdHsm, (QEvt *)pEvt);</entry>
+      <!--${AOs::NtagAO::SM::busy::checkEEPROM::NTAG_REG_READ_DONE}-->
+      <tran trig="NTAG_REG_READ_DONE">
+       <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+QS_STR(&quot;Reg Data1:&quot;);
+QS_U8(1, ((NtagReadRegQEvt_t const *) e)-&gt;reg);
+QS_U32_HEX(1, ((NtagReadRegQEvt_t const *) e)-&gt;value );
+QS_END();
+
+</action>
+       <!--${AOs::NtagAO::SM::busy::checkEEPROM::NTAG_REG_READ_DO~::[else]}-->
+       <choice target="../../../../2">
+        <guard>else</guard>
+        <action>NtagWriteMemRespQEvt_t* pEvt = Q_NEW(NtagWriteMemRespQEvt_t, NTAG_MEM_WRITE_DONE_SIG);
+pEvt-&gt;addr = 0;
+pEvt-&gt;nBytes = 4;
+QACTIVE_POST(AO_QpcMain, (QEvt *)pEvt, AO_Ntag);</action>
+        <choice_glyph conn="99,73,4,3,10,-93">
+         <action box="7,-2,10,2"/>
+        </choice_glyph>
+       </choice>
+       <!--${AOs::NtagAO::SM::busy::checkEEPROM::NTAG_REG_READ_DO~::[WriteBusy?]}-->
+       <choice target="../..">
+        <guard brief="WriteBusy?">((NtagReadRegQEvt_t const *) e)-&gt;value &amp; NTAG_REG_STATUS0_PT_EEPROM_WRITE_BUSY_MASK</guard>
+        <choice_glyph conn="99,73,5,2,-11,-7">
+         <action box="-9,-3,10,2"/>
+        </choice_glyph>
+       </choice>
+       <tran_glyph conn="99,66,2,-1,7">
+        <action box="0,1,21,2"/>
+       </tran_glyph>
+      </tran>
+      <state_glyph node="85,55,16,11">
+       <entry box="1,2,6,2"/>
+      </state_glyph>
+     </state>
      <state_glyph node="47,10,68,88">
       <entry box="1,2,6,2"/>
      </state_glyph>
@@ -271,11 +316,22 @@ QHSM_DISPATCH(me-&gt;ntagCmdHsm, e);</action>
       </tran_glyph>
      </tran>
      <!--${AOs::NtagAO::SM::idle::NTAG_MEM_WRITE}-->
-     <tran trig="NTAG_MEM_WRITE" target="../../1">
-      <action>//NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
-QHSM_DISPATCH(me-&gt;ntagCmdHsm, e);</action>
-      <tran_glyph conn="6,58,3,3,41">
+     <tran trig="NTAG_MEM_WRITE" target="../../1/4">
+      <action>QHSM_DISPATCH(me-&gt;ntagCmdHsm, e);</action>
+      <tran_glyph conn="6,58,3,3,48">
        <action box="0,-2,16,2"/>
+      </tran_glyph>
+     </tran>
+     <!--${AOs::NtagAO::SM::idle::NTAG_MEM_WRITE_DONE}-->
+     <tran trig="NTAG_MEM_WRITE_DONE" target="..">
+      <action>QS_BEGIN(LOG, 0);       /* application-specific record begin */
+QS_STR(&quot;MEM Data:&quot;);
+QS_U16(1, ((NtagWriteMemRespQEvt_t const *) e)-&gt;addr );
+QS_U8(1, ((NtagWriteMemRespQEvt_t const *) e)-&gt;nBytes);
+QS_END();
+QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);</action>
+      <tran_glyph conn="31,63,1,3,2,-1,-27">
+       <action box="-21,-2,20,2"/>
       </tran_glyph>
      </tran>
      <state_glyph node="6,10,25,88">

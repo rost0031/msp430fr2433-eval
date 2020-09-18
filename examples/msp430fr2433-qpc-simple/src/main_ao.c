@@ -127,7 +127,7 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e) {
 
     QS_OBJ_DICTIONARY(&l_qpcMain);
     QS_FUN_DICTIONARY(&QHsm_top);
-
+    #if 0
     QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
     QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
 
@@ -135,6 +135,13 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e) {
     QActive_subscribe(&me->super, NTAG_REG_WRITE_DONE_SIG);
     QActive_subscribe(&me->super, NTAG_MEM_READ_DONE_SIG);
     QActive_subscribe(&me->super, NTAG_MEM_WRITE_DONE_SIG);
+    #endif
+
+    QS_FUN_DICTIONARY(&QpcMain_active);
+    QS_FUN_DICTIONARY(&QpcMain_FirstSubState);
+    QS_FUN_DICTIONARY(&QpcMain_state1);
+    QS_FUN_DICTIONARY(&QpcMain_state2);
+
     return Q_TRAN(&QpcMain_FirstSubState);
 }
 
@@ -253,7 +260,7 @@ static QState QpcMain_state2(QpcMain * const me, QEvt const * const e) {
         /*.${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_DONE} */
         case NTAG_MEM_WRITE_DONE_SIG: {
             me->addr++;
-            /*.${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_D~::[me->addr<12]} */
+            /*.${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_D~::[moreToWrite?]} */
             if (me->addr < 12) {
                 status_ = Q_TRAN(&QpcMain_state2);
             }

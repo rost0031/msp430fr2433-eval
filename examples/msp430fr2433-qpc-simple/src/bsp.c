@@ -225,7 +225,7 @@ Q_NORETURN Q_onAssert(char_t const * const module, int_t const loc) {
 /******************************************************************************/
 uint8_t QS_onStartup(void const *arg) {
     (void)arg;                                    /* Prevent compiler warning */
-    static uint8_t qsBuf[256];  /* buffer for QS; RAM is tight! */
+    static uint8_t qsBuf[512];  /* buffer for QS; RAM is tight! */
 //    static uint8_t qsRxBuf[10]; /* buffer for QS receive channel */
     //uint16_t tmp;
 
@@ -252,9 +252,10 @@ uint8_t QS_onStartup(void const *arg) {
     UCA0IE |= UCRXIE;      /* Enable USCI_A1 RX interrupt */
 #endif
     /* setup the QS filters... */
-    QS_FILTER_OFF(QS_SM_RECORDS);
+    QS_FILTER_ON(QS_SM_RECORDS);
     //QS_FILTER_ON(QS_AO_RECORDS);
     QS_FILTER_ON(QS_UA_RECORDS);
+//    QS_FILTER_ON(QS_QEP_STATE_ENTRY);
 
     return 1U; /* return success */
 }

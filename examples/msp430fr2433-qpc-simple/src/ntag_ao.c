@@ -73,7 +73,9 @@ static QState NtagAO_initial(NtagAO * const me, QEvt const * const e);
  * machine is going next.
  */
 static QState NtagAO_busy(NtagAO * const me, QEvt const * const e);
+static QState NtagAO_writePage(NtagAO * const me, QEvt const * const e);
 static QState NtagAO_init(NtagAO * const me, QEvt const * const e);
+static QState NtagAO_checkEEPROM(NtagAO * const me, QEvt const * const e);
 
 /**
  * @brief    Idle state
@@ -145,14 +147,17 @@ static QState NtagAO_initial(NtagAO * const me, QEvt const * const e) {
     QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
     QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);
 
-
+    #if 0
     QActive_subscribe(&me->super, NTAG_REG_READ_DONE_SIG);
     QActive_subscribe(&me->super, NTAG_REG_WRITE_DONE_SIG);
     QActive_subscribe(&me->super, NTAG_MEM_READ_DONE_SIG);
     QActive_subscribe(&me->super, NTAG_MEM_WRITE_DONE_SIG);
+    #endif
 
     QS_FUN_DICTIONARY(&NtagAO_busy);
+    QS_FUN_DICTIONARY(&NtagAO_writePage);
     QS_FUN_DICTIONARY(&NtagAO_init);
+    QS_FUN_DICTIONARY(&NtagAO_checkEEPROM);
     QS_FUN_DICTIONARY(&NtagAO_idle);
 
     return Q_TRAN(&NtagAO_init);
@@ -172,8 +177,8 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
     switch (e->sig) {
         /*.${AOs::NtagAO::SM::busy} */
         case Q_ENTRY_SIG: {
-            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 10 ) );
-            //NTAG_init();
+            QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 50 ) );
+
             status_ = Q_HANDLED();
             break;
         }
@@ -203,6 +208,7 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
         }
         /*.${AOs::NtagAO::SM::busy::NTAG_MEM_READ_DONE} */
         case NTAG_MEM_READ_DONE_SIG: {
+            #if 0
             QS_BEGIN(LOG, 0);       /* application-specific record begin */
             QS_STR("MEM addr:");
             QS_U16(1, ((NtagReadMemRespQEvt_t const *) e)->addr );
@@ -211,23 +217,36 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
             QS_STR("data:");
             QS_MEM(((NtagReadMemRespQEvt_t const *) e)->data, ((NtagReadMemRespQEvt_t const *) e)->nBytes);
             QS_END();
-            QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);
-            status_ = Q_TRAN(&NtagAO_idle);
-            break;
-        }
-        /*.${AOs::NtagAO::SM::busy::NTAG_MEM_WRITE_DONE} */
-        case NTAG_MEM_WRITE_DONE_SIG: {
-            QS_BEGIN(LOG, 0);       /* application-specific record begin */
-            QS_STR("MEM Data:");
-            QS_U16(1, ((NtagWriteMemRespQEvt_t const *) e)->addr );
-            QS_U8(1, ((NtagWriteMemRespQEvt_t const *) e)->nBytes);
-            QS_END();
+            #endif
             QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);
             status_ = Q_TRAN(&NtagAO_idle);
             break;
         }
         default: {
             status_ = Q_SUPER(&QHsm_top);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::NtagAO::SM::busy::writePage} .....................................*/
+static QState NtagAO_writePage(NtagAO * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::NtagAO::SM::busy::writePage::NTAG_MEM_WRITE_DONE} */
+        case NTAG_MEM_WRITE_DONE_SIG: {
+            QS_BEGIN(LOG, 0);       /* application-specific record begin */
+            QS_STR("MEM Data:");
+            QS_U16(1, ((NtagWriteMemRespQEvt_t const *) e)->addr );
+            QS_U8(1, ((NtagWriteMemRespQEvt_t const *) e)->nBytes);
+            QS_END();
+
+
+            status_ = Q_TRAN(&NtagAO_checkEEPROM);
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&NtagAO_busy);
             break;
         }
     }
@@ -262,6 +281,49 @@ static QState NtagAO_init(NtagAO * const me, QEvt const * const e) {
             /*.${AOs::NtagAO::SM::busy::init::NTAG_REG_READ_DO~::[else]} */
             else {
                 status_ = Q_TRAN(&NtagAO_init);
+            }
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&NtagAO_busy);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::NtagAO::SM::busy::checkEEPROM} ...................................*/
+static QState NtagAO_checkEEPROM(NtagAO * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::NtagAO::SM::busy::checkEEPROM} */
+        case Q_ENTRY_SIG: {
+            NtagReadRegQEvt_t *pEvt = Q_NEW(NtagReadRegQEvt_t, NTAG_REG_READ_SIG);
+            pEvt->reg = NTAG_MEM_OFFSET_TAG_STATUS_REG;
+            pEvt->value = 0xFFFF;
+            QHSM_DISPATCH(me->ntagCmdHsm, (QEvt *)pEvt);
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::NtagAO::SM::busy::checkEEPROM::NTAG_REG_READ_DONE} */
+        case NTAG_REG_READ_DONE_SIG: {
+            QS_BEGIN(LOG, 0);       /* application-specific record begin */
+            QS_STR("Reg Data1:");
+            QS_U8(1, ((NtagReadRegQEvt_t const *) e)->reg);
+            QS_U32_HEX(1, ((NtagReadRegQEvt_t const *) e)->value );
+            QS_END();
+
+
+            /*.${AOs::NtagAO::SM::busy::checkEEPROM::NTAG_REG_READ_DO~::[WriteBusy?]} */
+            if (((NtagReadRegQEvt_t const *) e)->value & NTAG_REG_STATUS0_PT_EEPROM_WRITE_BUSY_MASK) {
+                status_ = Q_TRAN(&NtagAO_checkEEPROM);
+            }
+            /*.${AOs::NtagAO::SM::busy::checkEEPROM::NTAG_REG_READ_DO~::[else]} */
+            else {
+                NtagWriteMemRespQEvt_t* pEvt = Q_NEW(NtagWriteMemRespQEvt_t, NTAG_MEM_WRITE_DONE_SIG);
+                pEvt->addr = 0;
+                pEvt->nBytes = 4;
+                QACTIVE_POST(AO_QpcMain, (QEvt *)pEvt, AO_Ntag);
+                status_ = Q_TRAN(&NtagAO_idle);
             }
             break;
         }
@@ -317,9 +379,19 @@ static QState NtagAO_idle(NtagAO * const me, QEvt const * const e) {
         }
         /*.${AOs::NtagAO::SM::idle::NTAG_MEM_WRITE} */
         case NTAG_MEM_WRITE_SIG: {
-            //NTAG_readReg(NTAG_MEM_OFFSET_TAG_STATUS_REG);
             QHSM_DISPATCH(me->ntagCmdHsm, e);
-            status_ = Q_TRAN(&NtagAO_busy);
+            status_ = Q_TRAN(&NtagAO_writePage);
+            break;
+        }
+        /*.${AOs::NtagAO::SM::idle::NTAG_MEM_WRITE_DONE} */
+        case NTAG_MEM_WRITE_DONE_SIG: {
+            QS_BEGIN(LOG, 0);       /* application-specific record begin */
+            QS_STR("MEM Data:");
+            QS_U16(1, ((NtagWriteMemRespQEvt_t const *) e)->addr );
+            QS_U8(1, ((NtagWriteMemRespQEvt_t const *) e)->nBytes);
+            QS_END();
+            QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);
+            status_ = Q_TRAN(&NtagAO_idle);
             break;
         }
         default: {
