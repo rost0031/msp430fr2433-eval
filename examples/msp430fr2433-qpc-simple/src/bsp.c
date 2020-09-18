@@ -156,8 +156,8 @@ void QF_onStartup(void)
 
     TA0CCTL0 = CCIE;                          // CCR0 interrupt enabled
 #if USE_CS_MODULE
-//    TA0CCR0 = CS_getSMCLK();
-    TA0CCR0 = 999;
+    TA0CCR0 = (CS_getSMCLK()/1000);
+
 #else
     TA0CCR0 = 999;
 #endif
@@ -252,7 +252,7 @@ uint8_t QS_onStartup(void const *arg) {
     UCA0IE |= UCRXIE;      /* Enable USCI_A1 RX interrupt */
 #endif
     /* setup the QS filters... */
-    QS_FILTER_ON(QS_SM_RECORDS);
+    QS_FILTER_OFF(QS_SM_RECORDS);
     //QS_FILTER_ON(QS_AO_RECORDS);
     QS_FILTER_ON(QS_UA_RECORDS);
 

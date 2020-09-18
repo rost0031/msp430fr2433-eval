@@ -26,20 +26,20 @@
 typedef enum Signals {
     /* Q_USER_SIG is the first signal that user applications are allowed to use.
      * Should always be at the very top of the very first enum list */
-    FIRST_SIG = Q_USER_SIG,
-    TIMER_SIG,
+    TIMER_SIG = Q_USER_SIG,
 
     /** @{ Signals for NTAG commands */
-    NTAG_REG_READ_SIG,
-    NTAG_REG_READ_ADDR_DONE_SIG,
-    NTAG_REG_READ_BYTE_DONE_SIG,
     NTAG_REG_READ_DONE_SIG,
-    NTAG_REG_WRITE_SIG,
     NTAG_REG_WRITE_DONE_SIG,
-    NTAG_MEM_READ_SIG,
     NTAG_MEM_READ_DONE_SIG,
-    NTAG_MEM_WRITE_SIG,
     NTAG_MEM_WRITE_DONE_SIG,
+
+    MAX_PUB_SIG,    /* Last published signal */
+
+    NTAG_REG_READ_SIG,
+    NTAG_REG_WRITE_SIG,
+    NTAG_MEM_READ_SIG,
+    NTAG_MEM_WRITE_SIG,
     /** @} */
 
     /** @{ Signals for I2C commands */
@@ -50,9 +50,7 @@ typedef enum Signals {
     /** @} */
 
     TERMINATE_SIG,
-    MAX_SHARED_SIG,       /* Last published shared signal; should always last */
-    MAX_PUB_SIG           /* This signal should be used if LWIP is being used */
-
+    MAX_SHARED_SIG        /* Last published shared signal; should always last */
 } Signals_t;
 
 /* Exported variables --------------------------------------------------------*/

@@ -106,41 +106,6 @@ typedef enum {
  * @}
  */
 
-/**
- * @brief   NTAG events that can occur in the driver
- */
-typedef enum {
-    NtagEvtStart = 0,                     /**< For indexing through the enums */
-    NtagEvtDone = NtagEvtStart,                 /**< NTAG initialization done */
-
-    NtagEvtRegReadDone,                      /**< NTAG register read finished */
-    NtagEvtRegWriteDone,                     /**< NTAG register read finished */
-    NtagEvtMax,                           /**< For indexing through the enums */
-} NtagEvt_t;
-
-struct NtagData;      /**< Forward declaration to prevent circular dependency */
-
-/**
- * @brief   NTAG callback function pointer type
- */
-typedef void (*NtagCallback_t) (
-        const struct NtagData* const              /**< [in] NTAG data pointer */
-);
-
-/**
- * @brief   I2C data
- * This structure holds any dynamic data for the I2C bus that should live in
- * RAM as opposed to flash.
- */
-typedef struct NtagData {
-    Error_t         status;                               /**< Current status */
-    NtagCallback_t  callbacks[NtagEvtMax];            /**< Array of callbacks */
-    Buffer_t        bufferTx;                      /**< TX Buffer information */
-    Buffer_t        bufferRx;                      /**< RX Buffer information */
-    bool            isBusy;         /**< Disallow new calls while we are busy */
-    NTAGRegNumber_t currRegNumber;   /**< which register we are currently r/w */
-} NtagData_t;
-
 /* Exported constants --------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/
 

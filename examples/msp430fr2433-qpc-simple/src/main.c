@@ -29,6 +29,7 @@ static QEvt const *qpcNtagQueueSto[3];
 static QF_MPOOL_EL(QpcMainEvt) smlPoolSto[5];                     /* sml pool */
 static QF_MPOOL_EL(NtagReadMemRespQEvt_t) medPoolSto[5];                    /* med pool */
 
+static QSubscrList subscrSto[MAX_PUB_SIG];
 /* Private function prototypes -----------------------------------------------*/
 
 /* Public and Exported functions ---------------------------------------------*/
@@ -43,6 +44,9 @@ int main(void)
 
     QF_init();       /* initialize the framework and the underlying RT kernel */
     BSP_init();                       /* initialize the Board Support Package */
+
+    /* initialize publish-subscribe... */
+    QF_psInit(subscrSto, Q_DIM(subscrSto));
 
     /* initialize event pools... */
     QF_poolInit(smlPoolSto, sizeof(smlPoolSto), sizeof(smlPoolSto[0]));

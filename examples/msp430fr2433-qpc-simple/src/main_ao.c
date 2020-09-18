@@ -53,6 +53,7 @@ typedef struct {
     /**< Main timer. */
     QTimeEvt timerMain;
     uint16_t addr;
+    uint8_t byte;
 } QpcMain;
 
 /* protected: */
@@ -78,6 +79,7 @@ static QState QpcMain_active(QpcMain * const me, QEvt const * const e);
  */
 static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e);
 static QState QpcMain_state1(QpcMain * const me, QEvt const * const e);
+static QState QpcMain_state2(QpcMain * const me, QEvt const * const e);
 /*.$enddecl${AOs::QpcMain} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
 
 static QpcMain l_qpcMain;                      /**< single instance of the AO */
@@ -128,6 +130,11 @@ static QState QpcMain_initial(QpcMain * const me, QEvt const * const e) {
 
     QS_SIG_DICTIONARY(TERMINATE_SIG, (void *)0);
     QS_SIG_DICTIONARY(TIMER_SIG, (void *)0);
+
+    QActive_subscribe(&me->super, NTAG_REG_READ_DONE_SIG);
+    QActive_subscribe(&me->super, NTAG_REG_WRITE_DONE_SIG);
+    QActive_subscribe(&me->super, NTAG_MEM_READ_DONE_SIG);
+    QActive_subscribe(&me->super, NTAG_MEM_WRITE_DONE_SIG);
     return Q_TRAN(&QpcMain_FirstSubState);
 }
 
@@ -172,13 +179,14 @@ static QState QpcMain_FirstSubState(QpcMain * const me, QEvt const * const e) {
         /*.${AOs::QpcMain::SM::active::FirstSubState} */
         case Q_ENTRY_SIG: {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
+
             status_ = Q_HANDLED();
             break;
         }
         /*.${AOs::QpcMain::SM::active::FirstSubState::TIMER} */
         case TIMER_SIG: {
             QTimeEvt_rearm( &me->timerMain, MSEC_TO_TICKS( 1000 ) );
-
+            me->addr = 6;
             //P1OUT ^=  LED1;  /* toggle LED1 */
             status_ = Q_TRAN(&QpcMain_state1);
             break;
@@ -198,9 +206,61 @@ static QState QpcMain_state1(QpcMain * const me, QEvt const * const e) {
         case Q_ENTRY_SIG: {
             NtagReadMemReqQEvt_t *pEvt = Q_NEW(NtagReadMemReqQEvt_t, NTAG_MEM_READ_SIG);
             pEvt->nBytes = 4;
-            pEvt->addr = 0x00;
+            pEvt->addr = me->addr;
             QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, me);
             status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcMain::SM::active::state1::NTAG_MEM_READ_DONE} */
+        case NTAG_MEM_READ_DONE_SIG: {
+            me->addr++;
+            /*.${AOs::QpcMain::SM::active::state1::NTAG_MEM_READ_DO~::[me->addr<12]} */
+            if (me->addr < 12) {
+                status_ = Q_TRAN(&QpcMain_state1);
+            }
+            /*.${AOs::QpcMain::SM::active::state1::NTAG_MEM_READ_DO~::[else]} */
+            else {
+                me->byte = 0;
+                me->addr = 6;
+                status_ = Q_TRAN(&QpcMain_state2);
+            }
+            break;
+        }
+        default: {
+            status_ = Q_SUPER(&QpcMain_active);
+            break;
+        }
+    }
+    return status_;
+}
+/*.${AOs::QpcMain::SM::active::state2} .....................................*/
+static QState QpcMain_state2(QpcMain * const me, QEvt const * const e) {
+    QState status_;
+    switch (e->sig) {
+        /*.${AOs::QpcMain::SM::active::state2} */
+        case Q_ENTRY_SIG: {
+            NtagWriteMemReqQEvt_t *pEvt = Q_NEW(NtagWriteMemReqQEvt_t, NTAG_MEM_WRITE_SIG);
+            pEvt->nBytes = 4;
+            pEvt->addr = me->addr;
+            pEvt->data[0] = me->byte++;
+            pEvt->data[1] = me->byte++;
+            pEvt->data[2] = me->byte++;
+            pEvt->data[3] = me->byte++;
+            QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, me);
+            status_ = Q_HANDLED();
+            break;
+        }
+        /*.${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_DONE} */
+        case NTAG_MEM_WRITE_DONE_SIG: {
+            me->addr++;
+            /*.${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_D~::[me->addr<12]} */
+            if (me->addr < 12) {
+                status_ = Q_TRAN(&QpcMain_state2);
+            }
+            /*.${AOs::QpcMain::SM::active::state2::NTAG_MEM_WRITE_D~::[else]} */
+            else {
+                status_ = Q_HANDLED();
+            }
             break;
         }
         default: {

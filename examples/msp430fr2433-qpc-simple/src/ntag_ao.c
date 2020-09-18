@@ -32,6 +32,7 @@
 #include "signals.h"
 #include "ntag.h"
 #include "i2c.h"
+#include "main_ao.h"
 
 /* Compile-time called macros ------------------------------------------------*/
 Q_DEFINE_THIS_FILE
@@ -144,6 +145,12 @@ static QState NtagAO_initial(NtagAO * const me, QEvt const * const e) {
     QS_SIG_DICTIONARY(NTAG_MEM_WRITE_SIG, (void *)0);
     QS_SIG_DICTIONARY(NTAG_MEM_WRITE_DONE_SIG, (void *)0);
 
+
+    QActive_subscribe(&me->super, NTAG_REG_READ_DONE_SIG);
+    QActive_subscribe(&me->super, NTAG_REG_WRITE_DONE_SIG);
+    QActive_subscribe(&me->super, NTAG_MEM_READ_DONE_SIG);
+    QActive_subscribe(&me->super, NTAG_MEM_WRITE_DONE_SIG);
+
     QS_FUN_DICTIONARY(&NtagAO_busy);
     QS_FUN_DICTIONARY(&NtagAO_init);
     QS_FUN_DICTIONARY(&NtagAO_idle);
@@ -204,7 +211,7 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
             QS_STR("data:");
             QS_MEM(((NtagReadMemRespQEvt_t const *) e)->data, ((NtagReadMemRespQEvt_t const *) e)->nBytes);
             QS_END();
-
+            QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);
             status_ = Q_TRAN(&NtagAO_idle);
             break;
         }
@@ -215,7 +222,7 @@ static QState NtagAO_busy(NtagAO * const me, QEvt const * const e) {
             QS_U16(1, ((NtagWriteMemRespQEvt_t const *) e)->addr );
             QS_U8(1, ((NtagWriteMemRespQEvt_t const *) e)->nBytes);
             QS_END();
-
+            QACTIVE_POST(AO_QpcMain, (QEvt *)e, AO_Ntag);
             status_ = Q_TRAN(&NtagAO_idle);
             break;
         }

@@ -382,21 +382,13 @@ static QState NtagCmdHsm_readByte(NtagCmdHsm * const me, QEvt const * const e) {
             }
             /*.${AOs::NtagCmdHsm::SM::busy::readByte::I2C_RX::[else]} */
             else {
-                #if 0
-                /* Use the current active request event to send back data */
-                me->pActiveRequest->value = (uint16_t)me->dataBufRx[0];
-                if (me->regSize == 2) {
-                    me->pActiveRequest->value |= (uint16_t)(me->dataBufRx[1] << 8);
-                }
-                QACTIVE_POST(AO_Ntag, (QEvt *)(me->pActiveRequest), AO_Ntag);
-                #endif
-
                 NtagReadRegQEvt_t *pEvt = Q_NEW(NtagReadRegQEvt_t, NTAG_REG_READ_DONE_SIG);
                 pEvt->reg = me->pActiveRequest->reg;
                 pEvt->value = (uint16_t)me->dataBufRx[0];
                 if (me->regSize == 2) {
                     pEvt->value |= (uint16_t)(me->dataBufRx[1] << 8);
                 }
+                //QF_PUBLISH((QEvt *)pEvt, AO_Ntag);
                 QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
                 status_ = Q_TRAN(&NtagCmdHsm_idle);
             }
@@ -439,6 +431,7 @@ static QState NtagCmdHsm_rx(NtagCmdHsm * const me, QEvt const * const e) {
             pEvt->addr = ((me->dataBufTx[0]) << 8 | me->dataBufTx[1]);
             pEvt->nBytes = me->dataLenRxed;
             memcpy(pEvt->data, me->dataBufRx, me->dataLenRxed);
+            //QF_PUBLISH((QEvt *)pEvt, AO_Ntag);
             QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
             status_ = Q_TRAN(&NtagCmdHsm_idle);
             break;
@@ -486,6 +479,7 @@ static QState NtagCmdHsm_tx(NtagCmdHsm * const me, QEvt const * const e) {
                 NtagWriteMemRespQEvt_t *pEvt = Q_NEW(NtagWriteMemRespQEvt_t, NTAG_MEM_WRITE_DONE_SIG);
                 pEvt->addr = ((me->dataBufTx[0]) << 8 | me->dataBufTx[1]);
                 pEvt->nBytes = me->dataLenTxed;
+                //QF_PUBLISH((QEvt *)pEvt, AO_Ntag);
                 QACTIVE_POST(AO_Ntag, (QEvt *)pEvt, AO_Ntag);
                 status_ = Q_TRAN(&NtagCmdHsm_idle);
             }
