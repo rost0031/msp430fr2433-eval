@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include "cs.h"
 /* Compile-time called macros ------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -49,6 +50,8 @@ int main(void)
     P1SEL0 &= ~BIT7;
     P1SEL1 |= BIT3;
     P1SEL1 |= BIT7;
+
+    CS_init();
 
     /* LEDs */
     P1DIR |= (BIT0 | BIT1);         // Set P1.0 and P1.1 to output direction
