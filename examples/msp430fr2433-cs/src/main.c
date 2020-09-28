@@ -64,11 +64,9 @@ int main(void)
     UCA0CTLW0 |= UCSSEL__SMCLK;
 
     // Baud Rate calculation
-    UCA0BR0 = 8;                              // 1000000/115200 = 8.68
-    UCA0MCTLW = 0xD600;                       // 1000000/115200 - INT(1000000/115200)=0.68
+    UCA0BRW = UART_UC0BRW_REG;
+    UCA0MCTLW = UART_UC0MCTLW_REG;
 
-    // UCBRSx value = 0xD6 (See UG)
-    UCA0BR1 = 0;
     UCA0CTLW0 &= ~UCSWRST;                    // Initialize eUSCI
     UCA0IE |= UCRXIE;                         // Enable USCI_A0 RX interrupt
 
