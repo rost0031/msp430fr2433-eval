@@ -59,7 +59,6 @@ extern "C" {
 #define UART_OVERSAMPLE     (0)
 #define UART_UCBRSx         (0xD6)      /**< Second modulation register */
 #define UART_UCBRFx         (0x00)      /**< First modulation register */
-#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 #elif (CS_CONFIG==CS_SPEED_8M_1M_32K)
 
@@ -77,7 +76,6 @@ extern "C" {
 #define UART_OVERSAMPLE     (0)
 #define UART_UCBRSx         (0xD6)      /**< Second modulation register */
 #define UART_UCBRFx         (0x00)      /**< First modulation register */
-#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 #elif (CS_CONFIG==CS_SPEED_8M_2M_32K)
 #define CS_DCO_RANGE_SELECT (DCORSEL_3) /**< 8MHz DCO frequency range */
@@ -93,7 +91,6 @@ extern "C" {
 #define UART_OVERSAMPLE     (0)
 #define UART_UCBRSx         (0xA4)      /**< Second modulation register 2000000/115200 - INT(2000000/115200)=0.36 */
 #define UART_UCBRFx         (0x00)      /**< First modulation register */
-#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 #elif (CS_CONFIG==CS_SPEED_8M_4M_32K)
 #define CS_DCO_RANGE_SELECT (DCORSEL_3) /**< 8MHz DCO frequency range */
@@ -109,7 +106,6 @@ extern "C" {
 #define UART_OVERSAMPLE     (1)
 #define UART_UCBRSx         (0xBB)      /**< Second modulation register 4000000/115200 - INT(4000000/115200)=0.72 */
 #define UART_UCBRFx         (0x02)      /**< First modulation register */
-#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 #elif (CS_CONFIG==CS_SPEED_16M_2M_32K)
 #define CS_DCO_RANGE_SELECT (DCORSEL_5) /**< 16MHz DCO frequency range */
@@ -126,7 +122,6 @@ extern "C" {
 #define UART_OVERSAMPLE     (0)
 #define UART_UCBRSx         (0xA4)      /**< Second modulation register 2000000/115200 - INT(2000000/115200)=0.36 */
 #define UART_UCBRFx         (0x00)      /**< First modulation register */
-#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 #elif (CS_CONFIG==CS_SPEED_16M_4M_32K)
 #define CS_DCO_RANGE_SELECT (DCORSEL_5) /**< 16MHz DCO frequency range */
@@ -142,11 +137,13 @@ extern "C" {
 #define UART_OVERSAMPLE     (1)
 #define UART_UCBRSx         (0xBB)      /**< Second modulation register 4000000/115200 - INT(4000000/115200)=0.72 */
 #define UART_UCBRFx         (0x02)      /**< First modulation register */
-#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 #else
 #error "CS_CONFIG not defined"
 #endif
+
+
+#define UART_UC0MCTLW_REG   ((UART_UCBRSx << 8) | (UART_UCBRFx << 4) | UART_OVERSAMPLE)
 
 /* Exported macros -----------------------------------------------------------*/
 /* Exported types ------------------------------------------------------------*/

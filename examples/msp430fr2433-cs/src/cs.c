@@ -54,11 +54,9 @@ static void CS_trimDcoSw(void)
 
     uint16_t bestDcoDelta = 0xffff;
     uint16_t newDcoTap = 0xffff;
-    do
-    {
+    do {
         CSCTL0 = 0x100;                         // DCO Tap = 256
-        do
-        {
+        do {
             CSCTL7 &= ~DCOFFG;                  // Clear DCO fault flag
         }while (CSCTL7 & DCOFFG);               // Test DCO fault flag
 
@@ -74,37 +72,32 @@ static void CS_trimDcoSw(void)
         uint16_t dcoFreqTrim = (csCtl1Read & 0x0070)>>4;// Get DCOFTRIM value
 
         uint16_t newDcoDelta = 0xffff;
-        if(newDcoTap < 256)                    // DCOTAP < 256
-        {
-            newDcoDelta = 256 - newDcoTap;     // Delta value between DCPTAP and 256
-            if((oldDcoTap != 0xffff) && (oldDcoTap >= 256)) // DCOTAP cross 256
+        if (newDcoTap < 256) {                    // DCOTAP < 256
+                    newDcoDelta = 256 - newDcoTap;     // Delta value between DCPTAP and 256
+            if((oldDcoTap != 0xffff) && (oldDcoTap >= 256)) {// DCOTAP cross 256
                 endLoop = 1;                   // Stop while loop
-            else
-            {
+            } else {
                 dcoFreqTrim--;
                 CSCTL1 = (csCtl1Read & (~(DCOFTRIM0+DCOFTRIM1+DCOFTRIM2))) | (dcoFreqTrim<<4);
             }
-        }
-        else                                   // DCOTAP >= 256
-        {
+        } else {                               // DCOTAP >= 256
+
             newDcoDelta = newDcoTap - 256;     // Delta value between DCPTAP and 256
-            if(oldDcoTap < 256)                // DCOTAP cross 256
+            if (oldDcoTap < 256) {                // DCOTAP cross 256
                 endLoop = 1;                   // Stop while loop
-            else
-            {
+            } else {
                 dcoFreqTrim++;
                 CSCTL1 = (csCtl1Read & (~(DCOFTRIM0+DCOFTRIM1+DCOFTRIM2))) | (dcoFreqTrim<<4);
             }
         }
 
-        if(newDcoDelta < bestDcoDelta)         // Record DCOTAP closest to 256
-        {
+        if (newDcoDelta < bestDcoDelta) {       // Record DCOTAP closest to 256
             csCtl0Copy = csCtl0Read;
             csCtl1Copy = csCtl1Read;
             bestDcoDelta = newDcoDelta;
         }
 
-    }while(endLoop == 0);                      // Poll until endLoop == 1
+    } while (endLoop == 0);                    // Poll until endLoop == 1
 
     CSCTL0 = csCtl0Copy;                       // Reload locked DCOTAP
     CSCTL1 = csCtl1Copy;                       // Reload locked DCOFTRIM
